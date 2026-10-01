@@ -47,3 +47,29 @@ button:focus-visible {
 #result {
   overflow-wrap: anywhere;
 }
+
+#parking-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin-top: 24px;
+  list-style: none;
+}
+
+.parking-item {
+  padding: 16px;
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+  background-color: #f8faff;
+}
+
+.parking-item h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.parking-item p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
