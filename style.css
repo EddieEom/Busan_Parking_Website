@@ -1,0 +1,49 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  background-color: #f3f6fa;
+  color: #20334c;
+  font-family: system-ui, "Malgun Gothic", sans-serif;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 640px;
+  margin: 60px auto;
+  padding: 28px;
+  background-color: white;
+  border-radius: 12px;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 28px;
+}
+
+button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1763cd;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+button:focus-visible {
+  outline: 3px solid #80b7ff;
+  outline-offset: 3px;
+}
+
+#result {
+  overflow-wrap: anywhere;
+}
