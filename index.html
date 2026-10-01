@@ -9,15 +9,16 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <header><div class="wrap brand"><span class="mark" aria-hidden="true">P</span> 부산 공영주차장<span class="version">V1</span></div></header>
+  <header><div class="wrap brand"><span class="mark" aria-hidden="true">P</span> 부산 공영주차장<span class="version">V3</span></div></header>
   <main class="wrap">
-    <div class="heading"><div><p class="eyebrow">BUSAN PARKING</p><h1>주차장 찾아보기</h1><p class="subtitle">실시간 주차현황과 주소·요금 정보를 한곳에서 확인하세요.</p></div><button id="load-button" type="button">목록 새로고침</button></div>
+    <div class="heading"><div><p class="eyebrow">BUSAN PARKING</p><h1>주차장 찾아보기</h1><p class="subtitle">실시간 주차현황과 주소·요금 정보를 한곳에서 확인하세요.</p></div><button id="load-button" type="button">최신정보 새로고침</button></div>
     <section class="filters" aria-label="검색 및 필터">
-      <div class="field search"><label for="search">이름·주소 검색</label><input id="search" type="search" placeholder="예: 화명, 장산, 사하구" disabled></div>
+      <div class="field search"><label for="search">이름·주소 검색</label><input id="search" type="search" placeholder="예: 화명, 부산대역남측, 사하구" disabled></div>
       <div class="field"><label for="district">지역</label><select id="district" disabled><option value="">전체 지역</option></select></div>
       <div class="field"><label for="status">주차현황</label><select id="status" disabled><option value="">전체 현황</option><option value="available">주차 가능한 곳</option><option value="full">만차</option><option value="supported">실시간 제공 대상</option><option value="unknown">확인 필요 · 갱신 지연</option></select></div>
-      <div class="field"><label for="sort">정렬</label><select id="sort" disabled><option value="name">이름순</option><option value="available">주차가능 대수순</option><option value="fee">시간당 환산요금순</option></select></div>
+      <div class="field"><label for="sort">정렬</label><select id="sort" disabled><option value="name">검색 관련도·이름순</option><option value="available">주차가능 대수순</option><option value="fee">시간당 환산요금순</option></select></div>
       <button id="reset-button" type="button" class="secondary" disabled>필터 초기화</button>
+    <p class="filter-help">검색은 공백·괄호 없이 입력해도 됩니다. 환산요금은 기본요금을 1시간 기준으로 비교한 값이며 실제 청구금액과 다를 수 있습니다.</p>
     </section>
     <p id="warning" class="warning" role="status" hidden></p>
     <div class="summary"><p id="result" role="status" aria-live="polite">주차장 목록을 불러오는 중입니다.</p><p id="fetched-at"></p></div>

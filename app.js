@@ -3,7 +3,8 @@ const controls = ['search', 'district', 'status', 'sort', 'reset-button'];
 const numberFormat = new Intl.NumberFormat('ko-KR');
 let parkings = [];
 let loading = false;
-const normalize = value => String(value || '').normalize('NFKC').replace(/\s/g, '').toLowerCase();
+// 공백·괄호·쉼표를 생략해도 같은 이름을 찾을 수 있습니다.
+const normalize = value => String(value || '').normalize('NFKC').replace(/[\s(),·（）\[\]]/g, '').toLowerCase();
 const text = value => value == null ? '정보 없음' : String(value);
 const number = value => value == null ? '미확인' : numberFormat.format(value);
 const freshAvailable = p => ['available', 'full'].includes(p.status) ? p.availableSpaces : null;
@@ -43,10 +44,28 @@ function compareNullable(a, b, descending = false) {
   if (b == null) return -1;
   return descending ? b - a : a - b;
 }
-function filterAndSort(items, filters) {
+// 이름 완전 일치 → 앞부분 일치 → 이름 포함 → 주소/코드 일치 순서입니다.
+function searchRank(p, term) {
+  if (!term) return 0;
+  const name = normalize(p.name);
+  if (name === term) return 0;
+  if (name.startsWith(term)) return 1;
+  if (name.includes(term)) return 2;
+  if ([p.address, p.parkgcd].some(value => normalize(value).includes(term))) return 3;
+  return Infinity;
+}
+// 페이지를 오래 열어두거나 새 조회가 실패해도 오래된 빈자리를 추천하지 않습니다.
+function currentParking(p, now) {
+  if (!['available', 'full'].includes(p.status)) return p;
+  const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(p.updatedAt || '')
+    ? Date.parse(p.updatedAt.replace(' ', 'T') + '+09:00') : NaN;
+  return Number.isFinite(timestamp) && now - timestamp <= 600000 && timestamp - now <= 60000
+    ? p : {...p, status:'stale'};
+}
+function filterAndSort(items, filters, now = Date.now()) {
   const term = normalize(filters.search);
-  const result = items.filter(p => {
-    if (term && !normalize(`${p.name} ${p.address || ''} ${p.parkgcd || ''}`).includes(term)) return false;
+  const result = items.map(p => currentParking(p, now)).filter(p => {
+    if (!Number.isFinite(searchRank(p, term))) return false;
     if (filters.district === 'unknown' && p.district) return false;
     if (filters.district && filters.district !== 'unknown' && p.district !== filters.district) return false;
     if (filters.status === 'supported') return p.realtimeSupported;
@@ -55,9 +74,10 @@ function filterAndSort(items, filters) {
   });
   result.sort((a,b) => {
     let order = 0;
+    // 사용자가 선택한 숫자 정렬을 먼저 적용하고, 동률일 때 검색 관련도를 적용합니다.
     if (filters.sort === 'available') order = compareNullable(freshAvailable(a),freshAvailable(b),true);
     if (filters.sort === 'fee') order = compareNullable(hourlyFee(a),hourlyFee(b));
-    return order || a.name.localeCompare(b.name,'ko');
+    return order || searchRank(a,term) - searchRank(b,term) || a.name.localeCompare(b.name,'ko');
   });
   return result;
 }
@@ -74,14 +94,19 @@ function updateDistricts() {
   const districts = [...new Set(parkings.map(p => p.district).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
   $('district').replaceChildren();
   const options = [['','전체 지역'],...districts.map(d=>[d,d]),['unknown','지역 미확인']];
+  // 새 응답에 선택 지역이 없어도 전체 지역으로 바꾸지 않습니다.
+  if (previous && !options.some(([value]) => value === previous)) {
+    options.splice(options.length - 1, 0, [previous, `${previous} (현재 결과 없음)`]);
+  }
   for (const [value,label] of options) {
     const option = element('option',label); option.value = value; $('district').append(option);
   }
-  $('district').value = options.some(([value])=>value === previous) ? previous : '';
+  $('district').value = previous;
 }
 async function load() {
   if (loading) return;
   loading = true; $('load-button').disabled = true;
+  $('load-button').textContent = '조회 중…';
   controls.forEach(id => $(id).disabled = true);
   $('parking-list').setAttribute('aria-busy','true');
   $('result').textContent = '전체 주차정보를 불러오는 중입니다.';
@@ -90,7 +115,7 @@ async function load() {
     const response = await fetch('/api/parking', {cache:'no-store',signal:AbortSignal.timeout(120000)});
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || '주차정보 조회 실패');
-    if (!Array.isArray(data.items)) throw new Error('응답 형식을 확인해 주세요. functions/api/parking.js도 함께 교체해야 합니다.');
+    if (!Array.isArray(data.items)) throw new Error('통합 API의 items 응답 형식을 확인해 주세요.');
     parkings = data.items;
     updateDistricts();
     const stats = data.stats;
@@ -101,13 +126,18 @@ async function load() {
     $('warning').hidden = !(data.warnings || []).length;
     render();
   } catch (error) {
-    $('result').textContent = error.name === 'TimeoutError' ? '조회가 지연되고 있습니다. 잠시 후 목록 새로고침을 눌러 주세요.' : error.message;
+    const message = error.name === 'TimeoutError'
+      ? '조회가 지연되고 있습니다. 잠시 후 최신정보 새로고침을 눌러 주세요.' : error.message;
     if (parkings.length) {
-      $('warning').textContent = '새 조회에 실패했습니다. 이전에 조회한 결과를 표시하고 있습니다.';
+      render();
+      $('warning').textContent = `${message} 이전 조회 결과를 표시하고 있습니다. 갱신 시각을 확인해 주세요.`;
       $('warning').hidden = false;
+    } else {
+      $('result').textContent = message;
     }
   } finally {
     loading = false; $('load-button').disabled = false;
+    $('load-button').textContent = '최신정보 새로고침';
     controls.forEach(id => $(id).disabled = !parkings.length);
     $('parking-list').setAttribute('aria-busy','false');
   }
