@@ -52,7 +52,7 @@ export async function askGemini({apiKey, onRetry = () => {}, ...options}, fetchI
   const text = data.output_text ?? (data.steps ?? []).filter(step => step.type === 'model_output')
     .flatMap(step => step.content ?? []).filter(part => part.type === 'text').map(part => part.text).join('\n');
   const steps = Array.isArray(data.steps) ? data.steps : [];
-  const names = new Set(['search_parking', 'busan_parking.search_parking',
+  const names = new Set(['search_parking', 'busan_parking:search_parking', 'busan_parking.search_parking',
     'busan_parking__search_parking', 'busan_parking_search_parking']);
   const calls = steps.filter(step =>
     (step.type === 'mcp_server_tool_call' && step.server_name === 'busan_parking' &&

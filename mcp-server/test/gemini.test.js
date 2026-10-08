@@ -148,3 +148,24 @@ test('Retry-After를 존중하고 30초 초과 대기는 자동 재시도하지 
     assert.deepEqual(waits, seconds === 20 ? [20000, 20000] : []);
   }
 });
+
+test('실제 Gemini의 콜론 구분 MCP 이름과 연결된 결과를 인식', async () => {
+  const result = await askGemini({...options, apiKey: 'fixture-key'}, async () => Response.json({
+    status: 'requires_action', steps: [
+      {type: 'function_call', id: 'call_228190', name: 'busan_parking:search_parking'},
+      {type: 'function_result', call_id: 'call_228190', name: 'busan_parking:search_parking',
+        result: [{type: 'text', text: JSON.stringify(parkingResult)}]},
+      {type: 'thought'},
+      {type: 'model_output', content: [{type: 'text', text: '화명역 인근 검색 결과입니다.'}]}
+    ]
+  }));
+  assert.deepEqual(result.toolCalls, ['search_parking']);
+  assert.equal(result.text, '화명역 인근 검색 결과입니다.');
+});
+test('다른 서버의 콜론 구분 이름은 검색 결과가 있어도 거절', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () => Response.json({steps: [
+    {type: 'function_call', id: 'other-1', name: 'another_server:search_parking'},
+    {type: 'function_result', call_id: 'other-1', name: 'another_server:search_parking', result: parkingResult},
+    {type: 'model_output', content: [{type: 'text', text: '답변'}]}
+  ]})), /도구 호출이 확인되지/);
+});
