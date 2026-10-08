@@ -7,11 +7,26 @@
   <title>부산 공영주차장</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
+  <script src="chat.js" defer></script>
 </head>
 <body>
   <header><div class="wrap brand"><span class="mark" aria-hidden="true">P</span> 부산 공영주차장</div></header>
   <main class="wrap">
     <div class="heading"><div><p class="eyebrow">BUSAN PARKING</p><h1>주차장 찾아보기</h1><p class="subtitle">실시간 주차현황과 주소·요금 정보를 한곳에서 확인하세요.</p></div><button id="load-button" type="button">최신정보 새로고침</button></div>
+    <section class="chat-panel" aria-labelledby="chat-title">
+      <h2 id="chat-title">AI에게 주차장 물어보기</h2>
+      <p class="subtitle">예: 북구에서 빈자리 있는 주차장 찾아줘 · 화명역 주차장 요금 비교해줘</p>
+      <p id="chat-config" role="status">AI 안내 연결을 확인하고 있습니다.</p>
+      <form id="chat-form" hidden>
+        <label for="chat-question">질문</label>
+        <textarea id="chat-question" maxlength="1000" rows="3" required placeholder="찾고 싶은 주차장과 조건을 적어 주세요."></textarea>
+        <div id="chat-verify"></div>
+        <button id="chat-send" type="submit" disabled>질문하기</button>
+        <p class="chat-help">질문마다 최신 정보를 새로 조회합니다. 이전 질문의 내용은 기억하지 않습니다.</p>
+      </form>
+      <p id="chat-status" role="status" aria-live="polite"></p>
+      <div id="chat-answer" class="chat-answer" tabindex="-1" hidden></div>
+    </section>
     <section class="filters" aria-label="검색 및 필터">
       <div class="field search"><label for="search">이름·주소 검색</label><input id="search" type="search" placeholder="예: 화명, 부산대역남측, 사하구" disabled></div>
       <div class="field"><label for="district">지역</label><select id="district" disabled><option value="">전체 지역</option></select></div>

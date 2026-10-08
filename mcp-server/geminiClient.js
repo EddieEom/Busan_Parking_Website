@@ -4,7 +4,7 @@ function toolName(name) {
 }
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
-export function buildGeminiRequest({question, mcpUrl, model = 'gemini-3.8-flash', mcpToken}) {
+export function buildGeminiRequest({question, mcpUrl, model = 'gemini-3.6-flash', mcpToken}) {
   let url;
   try {url = new URL(mcpUrl);} catch {throw new Error('MCP_SERVER_URL에 배포된 /api/mcp 주소를 설정하세요.');}
   if (url.protocol !== 'https:' || url.username || url.password ||
@@ -23,19 +23,20 @@ export function buildGeminiRequest({question, mcpUrl, model = 'gemini-3.8-flash'
   };
 }
 
-export async function askGemini({apiKey, onRetry = () => {}, ...options}, fetchImpl = globalThis.fetch,
+export async function askGemini({apiKey, onRetry = () => {}, maxAttempts = 3, timeoutMs = 180000, ...options}, fetchImpl = globalThis.fetch,
   sleep = ms => new Promise(resolve => setTimeout(resolve, ms))) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new Error('Google AI Studio에서 발급한 키를 GEMINI_API_KEY에 설정하세요.');
   }
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 3 || !Number.isInteger(timeoutMs) || timeoutMs < 1) throw new Error('Gemini 실행 설정을 확인하세요.');
   const body = buildGeminiRequest(options);
   let response;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     response = await fetchImpl(ENDPOINT, {
       method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim()},
-      body: JSON.stringify(body), signal: AbortSignal.timeout(180000)
+      body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs)
     });
-    if (response.status !== 503 || attempt === 3) break;
+    if (response.status !== 503 || attempt === maxAttempts) break;
     const retryAfter = response.headers.get('retry-after');
     const seconds = retryAfter == null ? NaN : Number(retryAfter);
     const serverWait = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(retryAfter) - Date.now();

@@ -127,3 +127,26 @@ Gemini는 인터넷에서 MCP 서버를 조회하므로 localhost 주소를 사�
 
 ## Gemini 완료 상태
 도구 선택은 `auto`로 두어 검색 후 답변을 마칠 수 있게 합니다. `completed`와 검색 결과만 확인된 `verified_result`를 구분합니다. `requires_action`에 미처리 호출이 남으면 실패하며, 모든 호출 결과와 답변이 확인된 경우에만 경고와 함께 표시합니다. 원격 상태를 임의로 completed로 바꾸거나 이미 수행한 도구를 다시 실행하지 않습니다.
+
+## 웹 AI 안내 (5단계)
+`/api/chat`은 서버에서 Gemini를 호출하고 같은 MCP 서버의 검색·상세·비교 도구를 사용합니다. 브라우저에는 Gemini 키나 MCP 토큰을 보내지 않습니다. 질문마다 새로 조회하는 단일 질문 방식입니다.
+
+Cloudflare Pages → Settings → Variables and Secrets의 **Production**에 다음을 설정하고 재배포합니다.
+- `GEMINI_API_KEY`: AI Studio 키 (Secret)
+- `GEMINI_MODEL`: `gemini-3.6-flash` 권장, 선택 사항
+- `TURNSTILE_SITE_KEY`: Cloudflare Turnstile의 공개 사이트 키
+- `TURNSTILE_SECRET_KEY`: 같은 위젯의 비밀 키 (Secret)
+- `MCP_SERVER_URL`: 선택 사항. 생략하면 현재 사이트 `/api/mcp`. 로컬 개발에서는 배포된 HTTPS 주소를 입력
+- `MCP_AUTH_TOKEN`: 기존 MCP 서버와 같은 값. 미설정이면 생략
+- 기존 `DATA_API_KEY`, `BASIC_API_KEY`는 유지
+
+Turnstile 위젯의 허용 호스트에는 `busan-parking-website.pages.dev`를 등록합니다. Preview를 테스트하려면 해당 Preview 호스트도 등록하고 Preview 환경변수도 설정하세요. 서버는 hostname과 `parking_chat` action을 검증하므로 테스트용 키로 실제 사용자 확인을 우회하지 않습니다.
+
+로컬 웹 설정: `.dev.vars.example`을 `.dev.vars`로 복사하고 값을 채웁니다. 로컬 CLI Gemini 설정: `mcp-server/.env.example`을 `mcp-server/.env`로 복사합니다. 두 파일은 서로 다른 실행 환경이며 실제 값은 커밋하지 않습니다.
+
+```powershell
+npm ci
+npm --prefix mcp-server ci
+npx wrangler pages dev . --port 8788
+```
+설정이 없으면 AI 안내는 준비 중으로 표시되고 기존 주차장 목록은 계속 사용할 수 있습니다. Gemini 503은 최대 2회 재시도(CLI), 웹은 최대 1회 재시도합니다. 사용자 확인 토큰은 매 질문마다 새로 발급받습니다.
