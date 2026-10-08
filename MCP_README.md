@@ -142,6 +142,8 @@ Cloudflare Pages → Settings → Variables and Secrets의 **Production**에 다
 
 Turnstile 위젯의 허용 호스트에는 `busan-parking-website.pages.dev`를 등록합니다. Preview를 테스트하려면 해당 Preview 호스트도 등록하고 Preview 환경변수도 설정하세요. 서버는 hostname과 `parking_chat` action을 검증하므로 테스트용 키로 실제 사용자 확인을 우회하지 않습니다.
 
+로컬 웹에서 실제 Turnstile 키를 사용할 때는 위젯의 허용 호스트에 `localhost`도 등록하세요.
+
 로컬 웹 설정: `.dev.vars.example`을 `.dev.vars`로 복사하고 값을 채웁니다. 로컬 CLI Gemini 설정: `mcp-server/.env.example`을 `mcp-server/.env`로 복사합니다. 두 파일은 서로 다른 실행 환경이며 실제 값은 커밋하지 않습니다.
 
 ```powershell
@@ -153,3 +155,8 @@ npx wrangler pages dev . --port 8788
 
 ## 프로젝트 V4 지도보기
 각 검색 카드의 카카오맵 링크는 `부산 + 주차장명`으로 검색하며 공공데이터 주소를 지도 검색어에 넣지 않습니다. 원본 주소는 보존하고 참고정보라는 안내를 표시합니다. Kakao JavaScript SDK를 사용하지 않으므로 카카오 API 키는 필요 없습니다.
+
+## 프로젝트 V5 PWA
+manifest, 192/512 PNG 아이콘, 설치 안내와 Service Worker를 추가했습니다. Android/PC는 브라우저 설치 버튼, iPhone은 Safari 공유→홈 화면에 추가를 사용합니다. 설치 화면은 HTTPS에서 확인하세요. 정적 화면만 캐시하고 모든 `/api/` 요청과 AI 응답은 캐시하지 않습니다. 오프라인에서 실시간 주차 현황이나 AI 답변을 새로 받을 수 없습니다. 배포로 정적 파일 목록/내용을 변경할 때 `service-worker.js`의 CACHE_NAME도 올립니다. 새 Worker는 사용자 새로고침 버튼으로 활성화하며 이미 열린 앱의 요청을 강제로 중단하지 않습니다.
+
+검증 명령: `node --test scripts/*.test.mjs mcp-server/test/*.test.js`. 실 서비스 확인 순서: 목록 조회 → 지도 링크 → AI 질문(키 설정 후) → 모바일 설치 → 비행기 모드에서 정적 화면과 API 실패 안내 → 온라인 새로고침.

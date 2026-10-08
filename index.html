@@ -4,15 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10365e">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <title>부산 공영주차장</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
   <script src="chat.js" defer></script>
+  <script src="pwa.js" defer></script>
 </head>
 <body>
   <header><div class="wrap brand"><span class="mark" aria-hidden="true">P</span> 부산 공영주차장</div></header>
   <main class="wrap">
     <div class="heading"><div><p class="eyebrow">BUSAN PARKING</p><h1>주차장 찾아보기</h1><p class="subtitle">실시간 주차현황과 주소·요금 정보를 한곳에서 확인하세요.</p></div><button id="load-button" type="button">최신정보 새로고침</button></div>
+    <div class="install-panel">
+      <button id="install-app" type="button" class="secondary" hidden>앱처럼 설치하기</button>
+      <button id="update-app" type="button" hidden>새 버전으로 새로고침</button>
+      <p id="install-note" hidden></p>
+    </div>
     <section class="chat-panel" aria-labelledby="chat-title">
       <h2 id="chat-title">AI에게 주차장 물어보기</h2>
       <p class="subtitle">예: 북구에서 빈자리 있는 주차장 찾아줘 · 화명역 주차장 요금 비교해줘</p>
