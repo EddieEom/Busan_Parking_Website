@@ -7,7 +7,7 @@ test('Gemini Remote MCP 요청 형식과 도구 제한', () => {
   const request = buildGeminiRequest({...options, mcpToken: 'fixture-token'});
   assert.equal(request.tools[0].type, 'mcp_server');
   assert.equal(request.tools[0].name, 'busan_parking');
-  assert.deepEqual(request.tools[0].allowed_tools, [{mode: 'auto', tools: ['search_parking']}]);
+  assert.deepEqual(request.tools[0].allowed_tools, [{mode: 'any', tools: ['search_parking']}]);
   assert.equal(request.tools[0].headers.Authorization, 'Bearer fixture-token');
 });
 test('Gemini 키와 원격 주소 누락을 실제 호출 전에 거절', async () => {
@@ -25,7 +25,7 @@ test('키는 요청 헤더에만 전달하고 Gemini 최종 답변을 반환', a
     assert.equal(init.headers['x-goog-api-key'], 'fixture-key');
     assert.equal(init.body.includes('fixture-key'), false);
     assert.deepEqual(JSON.parse(init.body).tools[0].allowed_tools,
-      [{mode: 'auto', tools: ['search_parking']}]);
+      [{mode: 'any', tools: ['search_parking']}]);
     return Response.json({id: 'fixture-id', steps: [
       {type: 'mcp_server_tool_call', name: 'search_parking', server_name: 'busan_parking'},
       {type: 'model_output', content: [{type: 'text', text: '검색 결과입니다.'}]}
@@ -43,4 +43,39 @@ test('Gemini 제공 오류에 포함된 키를 제거', async () => {
   await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () =>
     Response.json({error: {message: 'invalid fixture-key'}}, {status: 400})), error =>
       error.message.includes('[redacted]') && !error.message.includes('fixture-key'));
+});
+
+test('도구 호출 누락 시 응답 상태·유형·미검증 답변을 진단하고 비밀값을 제거', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key', mcpToken: 'fixture-token'}, async () =>
+    Response.json({id: 'debug-id', status: 'completed', steps: [
+      {type: 'model_output', content: [{type: 'text', text: 'fixture-key fixture-token 추측 답변'}]}
+    ]})), error => {
+      assert.equal(error.diagnostics.interactionId, 'debug-id');
+      assert.equal(error.diagnostics.status, 'completed');
+      assert.deepEqual(error.diagnostics.stepTypes, ['model_output']);
+      assert.deepEqual(error.diagnostics.toolEvents, []);
+      assert.equal(error.diagnostics.unverifiedModelText, '[redacted] [redacted] 추측 답변');
+      return true;
+    });
+});
+test('다른 서버의 동일 이름 도구 호출을 성공으로 인정하지 않음', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () =>
+    Response.json({steps: [
+      {type: 'mcp_server_tool_call', name: 'search_parking', server_name: 'another_server', arguments: {secret: 'not-printed'}},
+      {type: 'model_output', content: [{type: 'text', text: '답변'}]}
+    ]})), error => {
+      assert.equal(error.diagnostics.toolEvents[0].server, 'another_server');
+      assert.equal(JSON.stringify(error.diagnostics).includes('not-printed'), false);
+      return true;
+    });
+});
+test('도구를 호출했지만 최종 답변이 없을 때도 진단 정보를 제공', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () =>
+    Response.json({status: 'incomplete', steps: [
+      {type: 'mcp_server_tool_call', name: 'search_parking', server_name: 'busan_parking'}
+    ]})), error => {
+      assert.match(error.message, /최종 답변/);
+      assert.equal(error.diagnostics.status, 'incomplete');
+      return true;
+    });
 });

@@ -15,5 +15,6 @@ try {
   // API 키를 출력하지 않습니다.
   const key = process.env.GEMINI_API_KEY?.trim();
   console.error(key ? String(error.message).replaceAll(key, '[redacted]') : error.message);
+  if (error.diagnostics) console.error('Gemini 진단 정보 (답변 미검증):\n' + JSON.stringify(error.diagnostics, null, 2));
   process.exitCode = 1;
 }
