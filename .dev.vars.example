@@ -1,0 +1,9 @@
+DATA_API_KEY=
+BASIC_API_KEY=
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.6-flash
+# 로컬 웹에서 Gemini가 호출할 수 있는 배포 주소입니다.
+MCP_SERVER_URL=https://busan-parking-website.pages.dev/api/mcp
+MCP_AUTH_TOKEN=
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=

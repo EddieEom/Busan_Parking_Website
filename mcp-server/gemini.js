@@ -7,7 +7,7 @@ try {
       `${model} 혼잡(503): ${delayMs / 1000}초 후 재시도 ${attempt}/2`),
     mcpUrl: process.env.MCP_SERVER_URL,
     mcpToken: process.env.MCP_AUTH_TOKEN,
-    model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
     question: process.argv.slice(2).join(' ') || '화명동 공영주차장을 찾아줘. 잔여 면수와 갱신 시각도 알려줘.'
   });
   console.log(result.text);
