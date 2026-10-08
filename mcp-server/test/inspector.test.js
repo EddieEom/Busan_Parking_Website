@@ -33,7 +33,7 @@ test('Inspector CLI로 도구 목록과 정상·빈 결과·오류 응답 검증
   }
   try {
     const listing = await inspect('/api/parking', ['--method', 'tools/list', '--strict']);
-    assert.deepEqual(listing.tools.map(t => t.name), ['search_parking']);
+    assert.deepEqual(listing.tools.map(t => t.name), ['search_parking', 'get_parking_detail']);
     const call = ['--method', 'tools/call', '--tool-name', 'search_parking'];
     const success = await inspect('/api/parking', [...call, '--tool-args-json', '{"keyword":"화명"}']);
     assert.equal(success.structuredContent.matchedCount, 1);

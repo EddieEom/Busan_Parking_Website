@@ -26,5 +26,20 @@ export function createServer({apiUrl, service} = {}) {
       return {isError: true, content: [{type: 'text', text: JSON.stringify(result)}]};
     }
   });
+  server.registerTool('get_parking_detail', {
+    title: '주차장 상세조회',
+    description: 'search_parking 결과의 id로 주차장 하나의 최신 현황·요금·요일별 운영시간·지도 링크를 조회합니다. id를 추측하지 마세요.',
+    inputSchema: z.object({id: z.string().min(1).max(2000)}).strict(),
+    annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true}
+  }, async options => {
+    try {
+      const result = await parking.getParkingDetail(options);
+      return {content: [{type: 'text', text: JSON.stringify(result)}], structuredContent: result};
+    } catch (error) {
+      const result = error instanceof ParkingServiceError ? {code: error.code, message: error.message}
+        : {code: 'INTERNAL_ERROR', message: '상세 조회 중 오류가 발생했습니다.'};
+      return {isError: true, content: [{type: 'text', text: JSON.stringify(result)}]};
+    }
+  });
   return server;
 }
