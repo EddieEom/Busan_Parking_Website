@@ -2,7 +2,7 @@ import {McpServer} from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import {createParkingService, ParkingServiceError} from '../services/parkingService.js';
 
-export function createServer({apiUrl = process.env.PARKING_API_URL, service} = {}) {
+export function createServer({apiUrl, service} = {}) {
   const parking = service ?? createParkingService({apiUrl});
   const server = new McpServer({name: 'busan-parking', version: '0.1.0'});
   server.registerTool('search_parking', {
