@@ -27,3 +27,13 @@ test('구·빈자리 조건에서 지연·미확인·만차·다른 구를 제�
  const result=await api.searchParking({district:'북구',availableOnly:true});
  assert.deepEqual(result.items.map(p=>p.name),['빈자리']);
 });
+
+test('비교는 한 번 조회하고 무료 0원·미확인 null을 구분',async()=>{
+ let calls=0;
+ const items=[{...a,baseMinutes:10,baseFee:0},{...b,baseMinutes:null,baseFee:null}];
+ const api=createParkingService({fetchImpl:async()=>{calls++;return Response.json({items});}});
+ const result=await api.compareParkings({ids:items.map(parkingId),sortBy:'fee'});
+ assert.equal(calls,1);assert.equal(result.items[0].estimatedHourlyFee,0);
+ assert.equal(result.items[1].estimatedHourlyFee,null);
+ await assert.rejects(api.compareParkings({ids:[parkingId(a),parkingId(a)]}),e=>e.code==='INVALID_INPUT');
+});

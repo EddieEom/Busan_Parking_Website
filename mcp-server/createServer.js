@@ -41,5 +41,21 @@ export function createServer({apiUrl, service} = {}) {
       return {isError: true, content: [{type: 'text', text: JSON.stringify(result)}]};
     }
   });
+  server.registerTool('compare_parkings', {
+    title: '주차장 비교',
+    description: '검색으로 얻은 서로 다른 id 2~5개의 최신 현황과 요금·운영시간을 같은 시점에 비교합니다. available은 빈자리 내림차순, fee는 시간당 환산요금 오름차순입니다. 거리나 현재 영업 여부를 보장하지 않습니다.',
+    inputSchema: z.object({ids: z.array(z.string().min(1).max(2000)).min(2).max(5),
+      sortBy: z.enum(['available','fee']).default('available')}).strict(),
+    annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true}
+  }, async options => {
+    try {
+      const result = await parking.compareParkings(options);
+      return {content: [{type: 'text', text: JSON.stringify(result)}], structuredContent: result};
+    } catch (error) {
+      const result = error instanceof ParkingServiceError ? {code: error.code, message: error.message}
+        : {code: 'INTERNAL_ERROR', message: '비교 중 오류가 발생했습니다.'};
+      return {isError: true, content: [{type: 'text', text: JSON.stringify(result)}]};
+    }
+  });
   return server;
 }

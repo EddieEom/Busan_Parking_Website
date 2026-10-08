@@ -39,7 +39,7 @@ test('실제 stdio 서버의 연결과 tools/list', {timeout: 15000}, async () =
   await withClient('/api/parking', async client => {
     assert.equal(client.getServerVersion().name, 'busan-parking');
     const {tools} = await client.listTools();
-    assert.deepEqual(tools.map(t => t.name), ['search_parking', 'get_parking_detail']);
+    assert.deepEqual(tools.map(t => t.name), ['search_parking', 'get_parking_detail', 'compare_parkings']);
     assert.equal(tools[0].inputSchema.properties.limit.maximum, 50);
     assert.equal(tools[0].annotations.readOnlyHint, true);
   });
@@ -101,5 +101,13 @@ test('MCP 지역+빈자리 교차조건과 미지원 구 이름 검증', async (
   assert.deepEqual(result.structuredContent.appliedFilters,{keyword:'',district:'북구',availableOnly:true,limit:10});
   const invalid=await client.callTool({name:'search_parking',arguments:{district:'부산'}});
   assert.equal(invalid.isError,true);
+ });
+});
+
+test('실제 MCP 비교 도구',async()=>{
+ await withClient('/api/parking',async client=>{
+  const found=await client.callTool({name:'search_parking',arguments:{}});
+  const result=await client.callTool({name:'compare_parkings',arguments:{ids:found.structuredContent.items.map(p=>p.id)}});
+  assert.notEqual(result.isError,true);assert.equal(result.structuredContent.comparedCount,2);
  });
 });

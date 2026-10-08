@@ -21,7 +21,7 @@ test('stateless HTTP로 연결·도구 목록·호출', async () => {
     }], warnings: []});
   });
   try {
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ['search_parking', 'get_parking_detail']);
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ['search_parking', 'get_parking_detail', 'compare_parkings']);
     assert.equal(count, 0);
     const result = await client.callTool({name: 'search_parking', arguments: {keyword: '화명'}});
     assert.equal(result.structuredContent.matchedCount, 1);
