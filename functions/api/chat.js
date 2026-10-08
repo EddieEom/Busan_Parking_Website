@@ -1,6 +1,6 @@
-import {askGemini} from '../../mcp-server/geminiClient.js';
+import {askOpenRouter, DEFAULT_MODEL} from '../../mcp-server/openrouterClient.js';
 const json = (data, status = 200) => Response.json(data, {status, headers: {'Cache-Control':'no-store'}});
-const configured = env => !!(env.GEMINI_API_KEY?.trim() && env.TURNSTILE_SITE_KEY?.trim() && env.TURNSTILE_SECRET_KEY?.trim());
+const configured = env => !!(env.OPENROUTER_API_KEY?.trim() && env.TURNSTILE_SITE_KEY?.trim() && env.TURNSTILE_SECRET_KEY?.trim());
 async function readBody(request) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('EMPTY');
@@ -17,7 +17,7 @@ async function readBody(request) {
   for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   return JSON.parse(new TextDecoder().decode(bytes));
 }
-export async function handleChat(context, fetchImpl = globalThis.fetch) {
+export async function handleChat(context, fetchImpl = globalThis.fetch, ask = askOpenRouter) {
   const {request,env} = context;
   const url = new URL(request.url);
   if(request.method==='GET') return json({enabled:configured(env),siteKey:configured(env)?env.TURNSTILE_SITE_KEY.trim():null});
@@ -41,13 +41,15 @@ export async function handleChat(context, fetchImpl = globalThis.fetch) {
     if(!verification.ok||!checked.success||checked.hostname!==url.hostname||checked.action!=='parking_chat') {
       return json({message:'사용자 확인이 만료됐습니다. 다시 확인한 뒤 질문해 주세요.'},403);
     }
-    const result=await askGemini({apiKey:env.GEMINI_API_KEY,model:env.GEMINI_MODEL?.trim()||'gemini-3.6-flash',
+    const result=await ask({apiKey:env.OPENROUTER_API_KEY,model:env.OPENROUTER_MODEL?.trim()||DEFAULT_MODEL,
       mcpUrl:env.MCP_SERVER_URL?.trim()||new URL('/api/mcp',url).href,
-      mcpToken:env.MCP_AUTH_TOKEN?.trim(),question:body.question.trim(),maxAttempts:2,timeoutMs:45000},fetchImpl);
+      mcpToken:env.MCP_AUTH_TOKEN?.trim(),question:body.question.trim(),timeoutMs:110000},fetchImpl);
     return json({answer:result.text,toolCalls:result.toolCalls,warnings:result.warnings,completion:result.completion});
   } catch(error) {
     // 외부 오류에는 키/인증 헤더가 포함될 수 있으므로 브라우저에 그대로 전달하지 않습니다.
-    if(/HTTP (429|503)/.test(error.message)) return json({message:'AI 요청이 많아 답변이 지연되고 있습니다. 잠시 후 다시 질문해 주세요.'},503);
+    if(error.status===402) return json({message:'AI 안내의 사용 잔액이 부족합니다. 주차장 목록 검색을 이용해 주세요.'},503);
+    if(error.status===429) return json({message:'AI 요청 한도에 도달했습니다. 잠시 후 다시 질문해 주세요.'},429);
+    if(error.status===503) return json({message:'AI 서버가 일시적으로 혼잡합니다. 잠시 후 다시 질문해 주세요.'},503);
     return json({message:'AI가 주차장 정보를 확인하지 못했습니다. 잠시 후 다시 질문하거나 목록 검색을 이용해 주세요.'},502);
   }
 }
