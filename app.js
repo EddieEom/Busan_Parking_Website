@@ -130,7 +130,7 @@ async function load() {
     $('warning').hidden = !(data.warnings || []).length;
     render();
   } catch (error) {
-    const message = error.name === 'TimeoutError'
+    const message = !navigator.onLine ? '오프라인입니다. 실시간 주차정보는 인터넷 연결 후 새로고침해 주세요.' : error.name === 'TimeoutError'
       ? '조회가 지연되고 있습니다. 잠시 후 최신정보 새로고침을 눌러 주세요.' : error.message;
     if (parkings.length) {
       render();
