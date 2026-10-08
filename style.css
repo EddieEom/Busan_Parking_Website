@@ -386,3 +386,5 @@ aside {
     font-size: 14px
 }
 .chat-panel{background:white;border:1px solid var(--line);border-radius:12px;padding:22px;margin:0 0 24px}.chat-panel h2{margin:0 0 8px;font-size:22px}.chat-panel textarea{width:100%;font:inherit;color:var(--ink);padding:12px;border:1px solid #b6c8dd;border-radius:7px;resize:vertical}.chat-help{font-size:13px;color:var(--muted)}#chat-verify{margin:12px 0}.chat-answer{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f7fb;padding:18px;border-radius:8px}.chat-panel button{margin-top:8px}
+
+.address-note{font-size:13px;color:var(--muted);background:#f4f7fb;padding:10px;border-radius:7px}.map-link{display:block;text-align:center;padding:10px 12px;background:#fee500;color:#242424;font-weight:650;text-decoration:none;border-radius:7px;margin:10px 0 16px}.map-link:hover{background:#ecd400}.details>div{grid-template-columns:100px 1fr}
