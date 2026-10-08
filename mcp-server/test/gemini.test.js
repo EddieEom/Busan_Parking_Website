@@ -107,3 +107,44 @@ test('호출 ID 불일치·검색 오류·관련 없는 결과·미실행 호출
     ]})), /도구 호출이 확인되지/);
   }
 });
+
+test('503일 때만 최대 두 번 대기 후 재시도', async () => {
+  let calls = 0;
+  const waits = [];
+  const notices = [];
+  const result = await askGemini({...options, apiKey: 'fixture-key', onRetry: n => notices.push(n)}, async () => {
+    calls++;
+    if (calls < 3) return Response.json({error: {message: 'busy'}}, {status: 503});
+    return Response.json({steps: [
+      {type: 'function_call', id: 'r1', name: 'search_parking'},
+      {type: 'function_result', call_id: 'r1', result: parkingResult},
+      {type: 'model_output', content: [{type: 'text', text: '검색 완료'}]}
+    ]});
+  }, async ms => waits.push(ms));
+  assert.equal(calls, 3);
+  assert.deepEqual(waits, [5000, 10000]);
+  assert.equal(notices.length, 2);
+  assert.equal(result.text, '검색 완료');
+});
+test('503 재시도 횟수 제한 및 400/401/429 즉시 실패', async () => {
+  for (const status of [503, 400, 401, 429]) {
+    let calls = 0;
+    await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () => {
+      calls++;
+      return Response.json({error: {message: 'failed'}}, {status});
+    }, async () => {}), new RegExp(`HTTP ${status}`));
+    assert.equal(calls, status === 503 ? 3 : 1);
+  }
+});
+test('Retry-After를 존중하고 30초 초과 대기는 자동 재시도하지 않음', async () => {
+  for (const seconds of [20, 60]) {
+    let calls = 0;
+    const waits = [];
+    await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () => {
+      calls++;
+      return Response.json({error: {message: 'busy'}}, {status: 503, headers: {'Retry-After': String(seconds)}});
+    }, async ms => waits.push(ms)), /HTTP 503/);
+    assert.equal(calls, seconds === 20 ? 3 : 1);
+    assert.deepEqual(waits, seconds === 20 ? [20000, 20000] : []);
+  }
+});

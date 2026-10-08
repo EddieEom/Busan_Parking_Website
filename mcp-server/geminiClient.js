@@ -19,15 +19,29 @@ export function buildGeminiRequest({question, mcpUrl, model = 'gemini-3.8-flash'
   };
 }
 
-export async function askGemini({apiKey, ...options}, fetchImpl = globalThis.fetch) {
+export async function askGemini({apiKey, onRetry = () => {}, ...options}, fetchImpl = globalThis.fetch,
+  sleep = ms => new Promise(resolve => setTimeout(resolve, ms))) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new Error('Google AI Studio에서 발급한 키를 GEMINI_API_KEY에 설정하세요.');
   }
   const body = buildGeminiRequest(options);
-  const response = await fetchImpl(ENDPOINT, {
-    method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim()},
-    body: JSON.stringify(body), signal: AbortSignal.timeout(180000)
-  });
+  let response;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    response = await fetchImpl(ENDPOINT, {
+      method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim()},
+      body: JSON.stringify(body), signal: AbortSignal.timeout(180000)
+    });
+    if (response.status !== 503 || attempt === 3) break;
+    const retryAfter = response.headers.get('retry-after');
+    const seconds = retryAfter == null ? NaN : Number(retryAfter);
+    const serverWait = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(retryAfter) - Date.now();
+    // 지나치게 긴 대기는 자동 재시도하지 않습니다.
+    if (serverWait > 30000) break;
+    const delayMs = Math.max(attempt * 5000, Number.isFinite(serverWait) ? serverWait : 0);
+    await response.body?.cancel();
+    onRetry({attempt, delayMs, model: body.model});
+    await sleep(delayMs);
+  }
   let data;
   try {data = await response.json();} catch {throw new Error(`Gemini가 JSON을 반환하지 않았습니다. HTTP ${response.status}`);}
   if (!response.ok) {

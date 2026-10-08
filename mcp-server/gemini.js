@@ -3,6 +3,8 @@ import {askGemini} from './geminiClient.js';
 try {
   const result = await askGemini({
     apiKey: process.env.GEMINI_API_KEY,
+    onRetry: ({attempt, delayMs, model}) => console.error(
+      `${model} 혼잡(503): ${delayMs / 1000}초 후 재시도 ${attempt}/2`),
     mcpUrl: process.env.MCP_SERVER_URL,
     mcpToken: process.env.MCP_AUTH_TOKEN,
     model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
