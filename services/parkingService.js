@@ -141,6 +141,22 @@ export function createParkingService({apiUrl = 'http://localhost:8788/api/parkin
       const {items, timestamp, meta} = await load();
       return {...meta, ...filterParkings(items, options, timestamp)};
     },
+    async compareParkings({ids, sortBy = 'available'} = {}) {
+      if (!Array.isArray(ids) || ids.length < 2 || ids.length > 5 ||
+          new Set(ids).size !== ids.length || ids.some(id => typeof id !== 'string' || !id || id.length > 2000) ||
+          !['available', 'fee'].includes(sortBy)) {
+        throw new ParkingServiceError('INVALID_INPUT', '서로 다른 주차장 id 2~5개와 sortBy(available 또는 fee)를 입력하세요.');
+      }
+      const {items, timestamp, meta} = await load();
+      const compared = ids.map(id => lookup(items, id, timestamp)).map(p => ({...p,
+        estimatedHourlyFee: p.baseMinutes > 0 && p.baseFee !== null ? Math.round(p.baseFee * 60 / p.baseMinutes) : null
+      }));
+      const value = p => sortBy === 'available' ? p.availableSpaces : p.estimatedHourlyFee;
+      compared.sort((a,b) => value(a) === null ? (value(b) === null ? 0 : 1)
+        : value(b) === null ? -1 : sortBy === 'available' ? value(b)-value(a) : value(a)-value(b));
+      return {...meta, sortBy, comparedCount: compared.length, items: compared,
+        comparisonNote: '시간당 요금은 기본요금의 단순 환산값으로 실제 청구액이 아닙니다. 거리·현재 영업 여부는 계산하지 않습니다. 미확인 값은 정렬 마지막에 둡니다.'};
+    },
     async getParkingDetail({id} = {}) {
       if (typeof id !== 'string' || !id || id.length > 2000) throw new ParkingServiceError('INVALID_INPUT', '검색 결과의 id를 입력하세요.');
       const {items, timestamp, meta} = await load();
