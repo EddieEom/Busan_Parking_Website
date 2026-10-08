@@ -12,6 +12,8 @@ export class ParkingServiceError extends Error {
   }
 }
 
+export const DISTRICTS = ['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'];
+
 function validateOptions(options) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new ParkingServiceError('INVALID_INPUT', '검색 조건은 객체여야 합니다.');
@@ -22,6 +24,7 @@ function validateOptions(options) {
       typeof availableOnly !== 'boolean' || !Number.isInteger(limit) || limit < 1 || limit > 50) {
     throw new ParkingServiceError('INVALID_INPUT', 'keyword(100자 이내), district(30자 이내), availableOnly(boolean), limit(1~50 정수)을 확인하세요.');
   }
+  if (district.trim() && !DISTRICTS.includes(district.trim())) throw new ParkingServiceError('INVALID_INPUT', '부산의 정확한 구·군 이름을 입력하세요. 예: 북구, 기장군');
   return {keyword: keyword.trim(), district: district.trim(), availableOnly, limit};
 }
 
@@ -77,7 +80,7 @@ export function filterParkings(items, options = {}, now = Date.now()) {
     (!filters.district || normalize(p.district) === normalize(filters.district)) &&
     (!filters.availableOnly || p.status === 'available')
   ).sort((a, b) => rank(a, term) - rank(b, term) || a.name.localeCompare(b.name, 'ko'));
-  return {matchedCount: matched.length, returnedCount: Math.min(matched.length, filters.limit),
+  return {appliedFilters: filters, matchedCount: matched.length, returnedCount: Math.min(matched.length, filters.limit),
     items: matched.slice(0, filters.limit)};
 }
 

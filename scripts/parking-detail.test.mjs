@@ -16,3 +16,14 @@ test('중복 식별자와 없는 식별자는 명시적 오류',async()=>{
  await assert.rejects(service([a,a]).getParkingDetail({id:parkingId(a)}),e=>e.code==='AMBIGUOUS_ID');
  await assert.rejects(service([a]).getParkingDetail({id:'missing'}),e=>e.code==='NOT_FOUND');
 });
+
+test('구·빈자리 조건에서 지연·미확인·만차·다른 구를 제외',async()=>{
+ const timestamp=Date.parse('2026-10-09T07:30:00+09:00');
+ const fresh={id:'realtime:1',name:'빈자리',district:'북구',availableSpaces:5,totalSpaces:10,status:'available',realtimeSupported:true,updatedAt:'2026-10-09 07:29:00'};
+ const items=[fresh,{...fresh,id:'realtime:2',name:'지연',updatedAt:'2026-10-09 07:00:00'},
+ {...fresh,id:'realtime:3',name:'만차',availableSpaces:0,status:'full'},
+ {...fresh,id:'realtime:4',name:'다른구',district:'남구'},a];
+ const api=createParkingService({now:()=>timestamp,fetchImpl:async()=>Response.json({items})});
+ const result=await api.searchParking({district:'북구',availableOnly:true});
+ assert.deepEqual(result.items.map(p=>p.name),['빈자리']);
+});
