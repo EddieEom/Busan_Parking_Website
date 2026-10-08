@@ -8,7 +8,7 @@ test('Gemini Remote MCP 요청 형식과 도구 제한', () => {
   const request = buildGeminiRequest({...options, mcpToken: 'fixture-token'});
   assert.equal(request.tools[0].type, 'mcp_server');
   assert.equal(request.tools[0].name, 'busan_parking');
-  assert.deepEqual(request.tools[0].allowed_tools, [{mode: 'any', tools: ['search_parking']}]);
+  assert.deepEqual(request.tools[0].allowed_tools, [{mode: 'auto', tools: ['search_parking']}]);
   assert.equal(request.tools[0].headers.Authorization, 'Bearer fixture-token');
 });
 test('Gemini 키와 원격 주소 누락을 실제 호출 전에 거절', async () => {
@@ -26,7 +26,7 @@ test('키는 요청 헤더에만 전달하고 Gemini 최종 답변을 반환', a
     assert.equal(init.headers['x-goog-api-key'], 'fixture-key');
     assert.equal(init.body.includes('fixture-key'), false);
     assert.deepEqual(JSON.parse(init.body).tools[0].allowed_tools,
-      [{mode: 'any', tools: ['search_parking']}]);
+      [{mode: 'auto', tools: ['search_parking']}]);
     return Response.json({id: 'fixture-id', steps: [
       {type: 'mcp_server_tool_call', id: 'call-1', name: 'search_parking', server_name: 'busan_parking'},
       {type: 'mcp_server_tool_result', call_id: 'call-1', result: parkingResult},
@@ -77,7 +77,7 @@ test('도구를 호출했지만 최종 답변이 없을 때도 진단 정보를 
       {type: 'mcp_server_tool_call', id: 'call-1', name: 'search_parking', server_name: 'busan_parking'},
       {type: 'mcp_server_tool_result', call_id: 'call-1', result: parkingResult}
     ]})), error => {
-      assert.match(error.message, /최종 답변/);
+      assert.match(error.message, /완료되지/);
       assert.equal(error.diagnostics.status, 'incomplete');
       return true;
     });
@@ -168,4 +168,13 @@ test('다른 서버의 콜론 구분 이름은 검색 결과가 있어도 거절
     {type: 'function_result', call_id: 'other-1', name: 'another_server:search_parking', result: parkingResult},
     {type: 'model_output', content: [{type: 'text', text: '답변'}]}
   ]})), /도구 호출이 확인되지/);
+});
+
+test('처리되지 않은 호출은 답변이 있어도 완료로 취급하지 않음', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () => Response.json({
+    status: 'requires_action', steps: [
+      {type: 'function_call', id: 'pending', name: 'busan_parking:search_parking'},
+      {type: 'model_output', content: [{type: 'text', text: '조회할게요'}]}
+    ]
+  })), /도구 호출이 확인되지/);
 });

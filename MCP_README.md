@@ -124,3 +124,6 @@ Gemini는 인터넷에서 MCP 서버를 조회하므로 localhost 주소를 사�
 - [MCP SDK: 웹 표준 런타임](https://ts.sdk.modelcontextprotocol.io/v2/serving/web-standard.html)
 - [Gemini: Remote MCP](https://ai.google.dev/gemini-api/docs/function-calling#remote-mcp-model-context-protocol)
 - [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions-overview)
+
+## Gemini 완료 상태
+도구 선택은 `auto`로 두어 검색 후 답변을 마칠 수 있게 합니다. `completed`와 검색 결과만 확인된 `verified_result`를 구분합니다. `requires_action`에 미처리 호출이 남으면 실패하며, 모든 호출 결과와 답변이 확인된 경우에만 경고와 함께 표시합니다. 원격 상태를 임의로 completed로 바꾸거나 이미 수행한 도구를 다시 실행하지 않습니다.

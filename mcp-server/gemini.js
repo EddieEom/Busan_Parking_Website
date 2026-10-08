@@ -11,9 +11,7 @@ try {
     question: process.argv.slice(2).join(' ') || '화명동 공영주차장을 찾아줘. 잔여 면수와 갱신 시각도 알려줘.'
   });
   console.log(result.text);
-  if (result.status && result.status !== 'completed') {
-    console.log(`\nGemini 응답 상태: ${result.status} (연결된 검색 결과와 답변 확인)`);
-  }
+  for (const warning of result.warnings) console.warn(`\n안내: ${warning} (${result.status})`);
   console.log(`\n호출한 MCP 도구: ${result.toolCalls.join(', ')}`);
   if (result.interactionId) console.log(`\nInteraction ID: ${result.interactionId}`);
 } catch (error) {
