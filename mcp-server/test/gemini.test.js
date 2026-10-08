@@ -8,7 +8,7 @@ test('Gemini Remote MCP 요청 형식과 도구 제한', () => {
   const request = buildGeminiRequest({...options, mcpToken: 'fixture-token'});
   assert.equal(request.tools[0].type, 'mcp_server');
   assert.equal(request.tools[0].name, 'busan_parking');
-  assert.deepEqual(request.tools[0].allowed_tools, [{mode: 'auto', tools: ['search_parking']}]);
+  assert.deepEqual(request.tools[0].allowed_tools, [{mode: 'auto', tools: ['search_parking', 'get_parking_detail']}]);
   assert.equal(request.tools[0].headers.Authorization, 'Bearer fixture-token');
 });
 test('Gemini 키와 원격 주소 누락을 실제 호출 전에 거절', async () => {
@@ -26,7 +26,7 @@ test('키는 요청 헤더에만 전달하고 Gemini 최종 답변을 반환', a
     assert.equal(init.headers['x-goog-api-key'], 'fixture-key');
     assert.equal(init.body.includes('fixture-key'), false);
     assert.deepEqual(JSON.parse(init.body).tools[0].allowed_tools,
-      [{mode: 'auto', tools: ['search_parking']}]);
+      [{mode: 'auto', tools: ['search_parking', 'get_parking_detail']}]);
     return Response.json({id: 'fixture-id', steps: [
       {type: 'mcp_server_tool_call', id: 'call-1', name: 'search_parking', server_name: 'busan_parking'},
       {type: 'mcp_server_tool_result', call_id: 'call-1', result: parkingResult},

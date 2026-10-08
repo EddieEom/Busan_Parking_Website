@@ -39,7 +39,7 @@ test('실제 stdio 서버의 연결과 tools/list', {timeout: 15000}, async () =
   await withClient('/api/parking', async client => {
     assert.equal(client.getServerVersion().name, 'busan-parking');
     const {tools} = await client.listTools();
-    assert.deepEqual(tools.map(t => t.name), ['search_parking']);
+    assert.deepEqual(tools.map(t => t.name), ['search_parking', 'get_parking_detail']);
     assert.equal(tools[0].inputSchema.properties.limit.maximum, 50);
     assert.equal(tools[0].annotations.readOnlyHint, true);
   });
@@ -81,5 +81,15 @@ test('API의 잘못된 응답 형식 전달', {timeout: 15000}, async () => {
     const result = await client.callTool({name: 'search_parking', arguments: {}});
     assert.equal(result.isError, true);
     assert.equal(JSON.parse(result.content[0].text).code, 'INVALID_RESPONSE');
+  });
+});
+
+test('MCP 검색 결과 식별자로 실제 상세 도구 호출', async () => {
+  await withClient('/api/parking', async client => {
+    const found=await client.callTool({name:'search_parking',arguments:{keyword:'화명'}});
+    const id=found.structuredContent.items[0].id;
+    const detail=await client.callTool({name:'get_parking_detail',arguments:{id}});
+    assert.notEqual(detail.isError,true);
+    assert.equal(detail.structuredContent.parking.id,id);
   });
 });

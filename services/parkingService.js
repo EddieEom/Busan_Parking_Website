@@ -52,12 +52,15 @@ function summarize(parking, now) {
     }
   }
   return {
-    id: clean(parking.id), parkgcd: clean(parking.parkgcd), name: parking.name,
+    id: parkingId(parking), parkgcd: clean(parking.parkgcd), name: parking.name,
     district: clean(parking.district), address: clean(parking.address),
     totalSpaces, availableSpaces: ['available', 'full'].includes(status) ? available : null,
     status, realtimeSupported: parking.realtimeSupported === true, updatedAt,
     baseMinutes: count(parking.baseMinutes), baseFee: count(parking.baseFee),
-    weekdayHours: clean(parking.weekdayHours), phone: clean(parking.phone)
+    weekdayHours: clean(parking.weekdayHours), saturdayHours: clean(parking.saturdayHours),
+    holidayHours: clean(parking.holidayHours), phone: clean(parking.phone),
+    agency: clean(parking.agency), referenceDate: clean(parking.referenceDate),
+    mapUrl: `https://map.kakao.com/link/search/${encodeURIComponent("부산 " + parking.name)}`
   };
 }
 
@@ -78,52 +81,67 @@ export function filterParkings(items, options = {}, now = Date.now()) {
     items: matched.slice(0, filters.limit)};
 }
 
-export function createParkingService({
-  apiUrl = 'http://localhost:8788/api/parking', fetchImpl = globalThis.fetch,
-  now = Date.now, timeoutMs = 120000
-} = {}) {
+export function parkingId(parking) {
+  const code = clean(parking.parkgcd) || (String(parking.id).startsWith('realtime:') ? String(parking.id).slice(9) : null);
+  if (code) return `realtime:${code}`;
+  // 기본정보의 배열 순번을 사용하지 않습니다. 주소/이름 변경 시에는 새 식별자가 됩니다.
+  return 'place:' + encodeURIComponent(JSON.stringify([
+    parking.name, parking.district, parking.address, parking.agency,
+    parking.raw?.basic?.mgntNum
+  ].map(normalize)));
+}
+
+const NOTES = [
+  '잔여 면수는 제공기관 갱신 시각 기준이며 도착 시 주차 가능 여부를 보장하지 않습니다.',
+  '10분을 초과하거나 갱신 시각을 확인할 수 없는 현황은 주차 가능으로 판단하지 않습니다.',
+  '주소는 공공데이터 기준이며 실제 위치와 다를 수 있습니다.',
+  '기본정보의 이름·주소 등이 변경되면 다시 검색하여 최신 식별자를 사용하세요.'
+];
+export function createParkingService({apiUrl = 'http://localhost:8788/api/parking',
+  fetchImpl = globalThis.fetch, now = Date.now, timeoutMs = 120000} = {}) {
   let url;
-  try { url = new URL(apiUrl); }
-  catch { throw new ParkingServiceError('INVALID_CONFIG', '주차장 API의 HTTP(S) 주소를 설정하세요.'); }
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-    throw new ParkingServiceError('INVALID_CONFIG', '주차장 API의 HTTP(S) 주소를 설정하세요.');
-  }
-  if (typeof fetchImpl !== 'function' || typeof now !== 'function' ||
-      !Number.isInteger(timeoutMs) || timeoutMs < 1) {
+  try {url = new URL(apiUrl);} catch {throw new ParkingServiceError('INVALID_CONFIG', '주차장 API 주소를 설정하세요.');}
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
+      typeof fetchImpl !== 'function' || typeof now !== 'function' || !Number.isInteger(timeoutMs) || timeoutMs < 1) {
     throw new ParkingServiceError('INVALID_CONFIG', '서비스 실행 설정이 올바르지 않습니다.');
+  }
+  async function load() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetchImpl(url.href, {headers: {Accept: 'application/json'}, cache: 'no-store', signal: controller.signal});
+      if (!response.ok) throw new ParkingServiceError('UPSTREAM_ERROR', `주차장 API 조회에 실패했습니다. HTTP ${response.status}`);
+      let data;
+      try {data = await response.json();} catch {throw new ParkingServiceError('INVALID_RESPONSE', '주차장 API가 JSON을 반환하지 않았습니다.');}
+      const timestamp = now();
+      filterParkings(data?.items, {limit: 1}, timestamp);
+      return {items: data.items, timestamp, meta: {
+        fetchedAt: clean(data.fetchedAt), checkedAt: new Date(timestamp).toISOString(), totalCount: data.items.length,
+        warnings: Array.isArray(data.warnings) ? data.warnings.filter(w => typeof w === 'string') : [], notes: NOTES
+      }};
+    } catch (error) {
+      if (error instanceof ParkingServiceError) throw error;
+      throw new ParkingServiceError(controller.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR',
+        controller.signal.aborted ? '주차장 API 응답 시간이 초과되었습니다.' : '주차장 API에 연결하지 못했습니다.');
+    } finally {clearTimeout(timer);}
+  }
+  function lookup(items, id, timestamp) {
+    if (typeof id !== 'string' || !id || id.length > 2000) throw new ParkingServiceError('INVALID_INPUT', '검색 결과의 id를 입력하세요.');
+    const matches = items.filter(p => parkingId(p) === id);
+    if (!matches.length) throw new ParkingServiceError('NOT_FOUND', '주차장을 찾을 수 없습니다. 다시 검색하세요.');
+    if (matches.length > 1) throw new ParkingServiceError('AMBIGUOUS_ID', '식별자가 중복되어 주차장을 확정할 수 없습니다.');
+    return summarize(matches[0], timestamp);
   }
   return {
     async searchParking(options = {}) {
       validateOptions(options);
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const response = await fetchImpl(url.href, {
-          headers: {Accept: 'application/json'}, cache: 'no-store', signal: controller.signal
-        });
-        if (!response.ok) throw new ParkingServiceError('UPSTREAM_ERROR',
-          `주차장 API 조회에 실패했습니다. HTTP ${response.status}`);
-        let data;
-        try { data = await response.json(); }
-        catch { throw new ParkingServiceError('INVALID_RESPONSE', '주차장 API가 JSON을 반환하지 않았습니다.'); }
-        const checkedAt = now();
-        const result = filterParkings(data?.items, options, checkedAt);
-        return {
-          fetchedAt: clean(data.fetchedAt), checkedAt: new Date(checkedAt).toISOString(),
-          totalCount: data.items.length, ...result,
-          warnings: Array.isArray(data.warnings) ? data.warnings.filter(w => typeof w === 'string') : [],
-          notes: [
-            '잔여 면수는 제공기관의 갱신 시각 기준이며 도착 시 주차 가능 여부를 보장하지 않습니다.',
-            '10분을 초과해 지연되거나 갱신 시각을 확인할 수 없는 현황은 주차 가능으로 판단하지 않습니다.',
-            '주소는 공공데이터 기준이며 실제 위치와 다를 수 있습니다.',
-            '현재 id는 검색 응답 식별용입니다. basic: 번호는 조회마다 달라질 수 있습니다.'
-          ]
-        };
-      } catch (error) {
-        if (error instanceof ParkingServiceError) throw error;
-        throw new ParkingServiceError(controller.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR',
-          controller.signal.aborted ? '주차장 API 응답 시간이 초과되었습니다.' : '주차장 API에 연결하지 못했습니다.');
-      } finally { clearTimeout(timer); }
+      const {items, timestamp, meta} = await load();
+      return {...meta, ...filterParkings(items, options, timestamp)};
+    },
+    async getParkingDetail({id} = {}) {
+      if (typeof id !== 'string' || !id || id.length > 2000) throw new ParkingServiceError('INVALID_INPUT', '검색 결과의 id를 입력하세요.');
+      const {items, timestamp, meta} = await load();
+      return {...meta, parking: lookup(items, id, timestamp)};
     }
   };
 }
