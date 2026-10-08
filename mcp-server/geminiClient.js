@@ -37,21 +37,38 @@ export async function askGemini({apiKey, ...options}, fetchImpl = globalThis.fet
   }
   const text = data.output_text ?? (data.steps ?? []).filter(step => step.type === 'model_output')
     .flatMap(step => step.content ?? []).filter(part => part.type === 'text').map(part => part.text).join('\n');
-  const calls = (data.steps ?? []).filter(step => step.type === 'mcp_server_tool_call' &&
-    step.server_name === 'busan_parking' && step.name === 'search_parking');
-  if (!calls.length || !text) {
-    const error = new Error(!calls.length
+  const steps = Array.isArray(data.steps) ? data.steps : [];
+  const names = new Set(['search_parking', 'busan_parking.search_parking',
+    'busan_parking__search_parking', 'busan_parking_search_parking']);
+  const calls = steps.filter(step =>
+    (step.type === 'mcp_server_tool_call' && step.server_name === 'busan_parking' &&
+      step.name === 'search_parking') ||
+    (step.type === 'function_call' && names.has(step.name) &&
+      (!step.server_name || step.server_name === 'busan_parking')));
+  // 호출 이름만으로 성공 처리하지 않고 같은 call_id의 검색 결과를 확인합니다.
+  const verified = calls.filter(call => typeof call.id === 'string' && steps.some(step =>
+    step.type === (call.type === 'function_call' ? 'function_result' : 'mcp_server_tool_result') &&
+    step.call_id === call.id && (!step.server_name || step.server_name === 'busan_parking') &&
+    (!step.name || names.has(step.name)) && hasParkingResult(step.result)));
+  const pending = steps.filter(step => ['function_call', 'mcp_server_tool_call'].includes(step.type))
+    .some(call => !steps.some(step =>
+      step.type === (call.type === 'function_call' ? 'function_result' : 'mcp_server_tool_result') &&
+      step.call_id === call.id));
+  if (!verified.length || pending || !text) {
+    const error = new Error(!verified.length || pending
       ? '주차장 MCP 도구 호출이 확인되지 않았습니다. 아래 진단 정보로 실제 응답을 확인하세요.'
       : 'Gemini의 최종 답변을 확인할 수 없습니다. 아래 진단 정보를 확인하세요.');
     // 요청 헤더, 인자, 전체 도구 결과는 출력하지 않습니다.
-    const steps = Array.isArray(data.steps) ? data.steps : [];
     const diagnostics = {
       interactionId: data.id ?? null, status: data.status ?? null,
       responseFields: Object.keys(data),
       stepTypes: steps.map(step => step.type ?? null),
       toolEvents: steps.filter(step => step.type === 'mcp_server_tool_call' ||
-        step.type === 'mcp_server_tool_result').map(step => ({
-          type: step.type, name: step.name ?? null, server: step.server_name ?? null
+        step.type === 'mcp_server_tool_result' || step.type === 'function_call' ||
+        step.type === 'function_result').map(step => ({
+          type: step.type, name: step.name ?? null, server: step.server_name ?? null,
+          id: step.id ?? null, callId: step.call_id ?? null,
+          parkingResultVerified: hasParkingResult(step.result)
         })),
       unverifiedModelText: String(text ?? '').slice(0, 2000)
     };
@@ -62,5 +79,21 @@ export async function askGemini({apiKey, ...options}, fetchImpl = globalThis.fet
     error.diagnostics = JSON.parse(safe);
     throw error;
   }
-  return {text, interactionId: data.id ?? null, toolCalls: calls.map(call => call.name)};
+  return {text, interactionId: data.id ?? null, status: data.status ?? null,
+    toolCalls: verified.map(() => 'search_parking')};
+}
+
+// MCP 구조화 결과와 Gemini의 text JSON 결과를 함께 확인합니다.
+function hasParkingResult(value, depth = 0) {
+  if (depth > 6 || value == null) return false;
+  if (typeof value === 'string') {
+    try { return hasParkingResult(JSON.parse(value), depth + 1); } catch { return false; }
+  }
+  if (Array.isArray(value)) return value.some(part => hasParkingResult(part, depth + 1));
+  if (typeof value !== 'object' || value.isError === true || value.is_error === true || value.error) return false;
+  if (Array.isArray(value.items) && Number.isInteger(value.matchedCount) &&
+      Number.isInteger(value.returnedCount) && value.returnedCount === value.items.length &&
+      value.items.every(item => item && typeof item.name === 'string')) return true;
+  return ['structuredContent', 'content', 'text', 'result'].some(key =>
+    hasParkingResult(value[key], depth + 1));
 }

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {askGemini, buildGeminiRequest} from '../geminiClient.js';
 
+const parkingResult = {matchedCount: 1, returnedCount: 1, items: [{name: '국철 화명역 공영주차장'}]};
 const options = {question: '화명 주차장 찾아줘', mcpUrl: 'https://parking.example/api/mcp'};
 test('Gemini Remote MCP 요청 형식과 도구 제한', () => {
   const request = buildGeminiRequest({...options, mcpToken: 'fixture-token'});
@@ -27,7 +28,8 @@ test('키는 요청 헤더에만 전달하고 Gemini 최종 답변을 반환', a
     assert.deepEqual(JSON.parse(init.body).tools[0].allowed_tools,
       [{mode: 'any', tools: ['search_parking']}]);
     return Response.json({id: 'fixture-id', steps: [
-      {type: 'mcp_server_tool_call', name: 'search_parking', server_name: 'busan_parking'},
+      {type: 'mcp_server_tool_call', id: 'call-1', name: 'search_parking', server_name: 'busan_parking'},
+      {type: 'mcp_server_tool_result', call_id: 'call-1', result: parkingResult},
       {type: 'model_output', content: [{type: 'text', text: '검색 결과입니다.'}]}
     ]});
   });
@@ -72,10 +74,36 @@ test('다른 서버의 동일 이름 도구 호출을 성공으로 인정하지 
 test('도구를 호출했지만 최종 답변이 없을 때도 진단 정보를 제공', async () => {
   await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () =>
     Response.json({status: 'incomplete', steps: [
-      {type: 'mcp_server_tool_call', name: 'search_parking', server_name: 'busan_parking'}
+      {type: 'mcp_server_tool_call', id: 'call-1', name: 'search_parking', server_name: 'busan_parking'},
+      {type: 'mcp_server_tool_result', call_id: 'call-1', result: parkingResult}
     ]})), error => {
       assert.match(error.message, /최종 답변/);
       assert.equal(error.diagnostics.status, 'incomplete');
       return true;
     });
+});
+
+test('관측된 requires_action·function_call/result 형식에서 연결된 검색 결과 확인', async () => {
+  const result = await askGemini({...options, apiKey: 'fixture-key'}, async () => Response.json({
+    status: 'requires_action', steps: [
+      {type: 'function_call', id: 'fc-1', name: 'search_parking'},
+      {type: 'function_result', call_id: 'fc-1', result: [{type: 'text', text: JSON.stringify(parkingResult)}]},
+      {type: 'thought'},
+      {type: 'model_output', content: [{type: 'text', text: '화명역 검색 결과입니다.'}]}
+    ]
+  }));
+  assert.deepEqual(result.toolCalls, ['search_parking']);
+  assert.equal(result.status, 'requires_action');
+});
+test('호출 ID 불일치·검색 오류·관련 없는 결과·미실행 호출을 성공으로 처리하지 않음', async () => {
+  for (const [callId, payload] of [
+    ['wrong-id', parkingResult], ['fc-1', {isError: true, content: []}],
+    ['fc-1', {message: '임의 결과'}]
+  ]) {
+    await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () => Response.json({steps: [
+      {type: 'function_call', id: 'fc-1', name: 'search_parking'},
+      {type: 'function_result', call_id: callId, result: payload},
+      {type: 'model_output', content: [{type: 'text', text: '추측 답변'}]}
+    ]})), /도구 호출이 확인되지/);
+  }
 });
