@@ -12,14 +12,15 @@
     "check": "node check.js",
     "inspect": "mcp-inspector node server.js",
     "gemini": "node --env-file=.env gemini.js",
-    "check:http": "node --env-file-if-exists=.env check-http.js"
+    "check:http": "node --env-file-if-exists=.env check-http.js",
+    "openrouter": "node --env-file=.env openrouter.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
     "@modelcontextprotocol/server": "2.3.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.3.1",
     "@modelcontextprotocol/inspector": "2.9.0"
   }
 }

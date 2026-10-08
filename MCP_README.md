@@ -1,4 +1,8 @@
-# 부산 공영주차장 MCP — 첫 검색 도구
+# 부산 공영주차장 MCP
+
+현재 웹 AI와 기본 CLI는 OpenRouter를 사용합니다. 설정은 아래 **현재 기본 AI: OpenRouter** 항목을 참고하세요. 앞부분의 Gemini 설명은 이전 단계의 기록이며, Gemini CLI는 진단용으로 남아 있습니다.
+
+## 이전 단계: 첫 검색 도구
 
 기존 `/api/parking`을 재사용하는 `search_parking` MCP 도구입니다.
 로컬 stdio 서버와 Cloudflare Pages의 Streamable HTTP `/api/mcp`를 지원합니다.
@@ -160,3 +164,41 @@ npx wrangler pages dev . --port 8788
 manifest, 192/512 PNG 아이콘, 설치 안내와 Service Worker를 추가했습니다. Android/PC는 브라우저 설치 버튼, iPhone은 Safari 공유→홈 화면에 추가를 사용합니다. 설치 화면은 HTTPS에서 확인하세요. 정적 화면만 캐시하고 모든 `/api/` 요청과 AI 응답은 캐시하지 않습니다. 오프라인에서 실시간 주차 현황이나 AI 답변을 새로 받을 수 없습니다. 배포로 정적 파일 목록/내용을 변경할 때 `service-worker.js`의 CACHE_NAME도 올립니다. 새 Worker는 사용자 새로고침 버튼으로 활성화하며 이미 열린 앱의 요청을 강제로 중단하지 않습니다.
 
 검증 명령: `node --test scripts/*.test.mjs mcp-server/test/*.test.js`. 실 서비스 확인 순서: 목록 조회 → 지도 링크 → AI 질문(키 설정 후) → 모바일 설치 → 비행기 모드에서 정적 화면과 API 실패 안내 → 온라인 새로고침.
+
+## 현재 기본 AI: OpenRouter
+
+웹 `/api/chat`은 OpenRouter Chat Completions를 사용합니다. Gemini Interactions 파일과 `gemini` 명령은 이전 연결의 비교 진단용으로만 남겨 두었습니다. 웹은 Gemini 키를 사용하거나 자동으로 Gemini에 재시도하지 않습니다.
+
+Cloudflare Pages **Production**에 아래 값을 저장한 후 재배포하세요.
+
+```dotenv
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4.1-mini
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+```
+
+API 키는 Secret으로 저장합니다. 기존 DATA_API_KEY/BASIC_API_KEY/MCP_AUTH_TOKEN과 Turnstile 키는 유지하세요. GEMINI_API_KEY/GEMINI_MODEL은 현재 웹에 필요하지 않습니다. Cloudflare의 MCP_SERVER_URL은 생략하면 같은 사이트의 `/api/mcp`를 사용합니다. 로컬 웹 `.dev.vars`에는 `.dev.vars.example`을 참고해 OpenRouter 키를 넣으세요.
+
+CLI `mcp-server/.env`:
+
+```dotenv
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4.1-mini
+MCP_SERVER_URL=https://busan-parking-website.pages.dev/api/mcp
+MCP_AUTH_TOKEN=
+```
+
+```powershell
+npm ci
+npm --prefix mcp-server ci
+npm --prefix mcp-server run openrouter -- "화명 주차장 찾아줘"
+```
+
+Cloudflare가 배포한 MCP를 사용하면 별도 로컬 MCP 서버 실행은 필요하지 않습니다. 로컬 MCP를 테스트할 때는 MCP_SERVER_URL에 localhost HTTP 주소를 사용할 수 있습니다. 키·인증 토큰은 브라우저 또는 Git에 넣지 마세요. 기존 PowerShell의 GEMINI_MODEL 환경변수는 OpenRouter에 영향을 주지 않습니다.
+
+흐름: 서버가 MCP SDK로 initialize/listTools → 모델의 function tool call → SDK callTool → tool_call_id에 연결된 조회 결과 → 모델의 최종 답변. 외부 모델이 MCP URL을 직접 방문하는 방식이 아닙니다. 조회가 검증되지 않은 답변이나 잘린 답변은 사용자에게 반환하지 않습니다. 상세·비교 id는 실제 검색에서 얻은 값만 허용합니다. 도구 6회·모델 4라운드·전체 110초·출력 1200토큰·검색 8개로 제한하며 오류 시 자동 모델 변경 및 반복 재시도는 하지 않습니다.
+
+OpenRouter에서 사용하는 모델은 도구 호출을 지원해야 합니다. 기본 모델은 유료이며 OpenRouter 크레딧이 필요합니다. 가격은 선택한 모델의 현재 페이지에서 확인하고 키 사용 한도를 설정하세요. 402(잔액 부족), 429(요청 한도), 503(혼잡)은 웹에서 구분하여 안내합니다. 비밀값을 포함할 수 있는 외부 오류 원문은 반환하지 않습니다.
+
+전환 검증: 자동 테스트는 모델 응답 모의 + 실제 SDK/stateless HTTP MCP 연결을 포함합니다. 실제 유료 모델 호출과 웹 Turnstile 테스트는 사용자의 OpenRouter 키 설정 후 확인해야 합니다.
