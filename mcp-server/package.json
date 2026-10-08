@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node server.js",
     "test": "node --test ../scripts/parking-service.test.mjs test/*.test.js",
     "check": "node check.js",
-    "inspect": "mcp-inspector node server.js"
+    "inspect": "mcp-inspector node server.js",
+    "gemini": "node --env-file=.env gemini.js",
+    "check:http": "node --env-file-if-exists=.env check-http.js"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",

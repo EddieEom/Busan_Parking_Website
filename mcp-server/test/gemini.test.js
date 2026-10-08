@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {askGemini, buildGeminiRequest} from '../geminiClient.js';
+
+const options = {question: '화명 주차장 찾아줘', mcpUrl: 'https://parking.example/api/mcp'};
+test('Gemini Remote MCP 요청 형식과 도구 제한', () => {
+  const request = buildGeminiRequest({...options, mcpToken: 'fixture-token'});
+  assert.equal(request.tools[0].type, 'mcp_server');
+  assert.equal(request.tools[0].name, 'busan_parking');
+  assert.deepEqual(request.tools[0].allowed_tools, ['search_parking']);
+  assert.equal(request.tools[0].headers.Authorization, 'Bearer fixture-token');
+});
+test('Gemini 키와 원격 주소 누락을 실제 호출 전에 거절', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {calls++;};
+  await assert.rejects(askGemini(options, fetchImpl), /GEMINI_API_KEY/);
+  for (const mcpUrl of [undefined, 'http://localhost:8788/api/mcp', 'https://127.0.0.1/api/mcp']) {
+    await assert.rejects(askGemini({...options, mcpUrl, apiKey: 'fixture-key'}, fetchImpl));
+  }
+  assert.equal(calls, 0);
+});
+test('키는 요청 헤더에만 전달하고 Gemini 최종 답변을 반환', async () => {
+  const result = await askGemini({...options, apiKey: 'fixture-key'}, async (url, init) => {
+    assert.equal(url, 'https://generativelanguage.googleapis.com/v1beta/interactions');
+    assert.equal(init.headers['x-goog-api-key'], 'fixture-key');
+    assert.equal(init.body.includes('fixture-key'), false);
+    return Response.json({id: 'fixture-id', steps: [
+      {type: 'mcp_server_tool_call', name: 'search_parking', server_name: 'busan_parking'},
+      {type: 'model_output', content: [{type: 'text', text: '검색 결과입니다.'}]}
+    ]});
+  });
+  assert.equal(result.text, '검색 결과입니다.');
+  assert.equal(result.interactionId, 'fixture-id');
+  assert.deepEqual(result.toolCalls, ['search_parking']);
+});
+test('MCP 호출 없이 생성된 답변은 검색 성공으로 취급하지 않음', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () =>
+    Response.json({steps: [{type: 'model_output', content: [{type: 'text', text: '추측 답변'}]}]})), /도구 호출이 확인되지/);
+});
+test('Gemini 제공 오류에 포함된 키를 제거', async () => {
+  await assert.rejects(askGemini({...options, apiKey: 'fixture-key'}, async () =>
+    Response.json({error: {message: 'invalid fixture-key'}}, {status: 400})), error =>
+      error.message.includes('[redacted]') && !error.message.includes('fixture-key'));
+});
