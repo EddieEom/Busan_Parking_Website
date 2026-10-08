@@ -93,3 +93,13 @@ test('MCP 검색 결과 식별자로 실제 상세 도구 호출', async () => {
     assert.equal(detail.structuredContent.parking.id,id);
   });
 });
+
+test('MCP 지역+빈자리 교차조건과 미지원 구 이름 검증', async () => {
+ await withClient('/api/parking',async client=>{
+  const result=await client.callTool({name:'search_parking',arguments:{district:'북구',availableOnly:true}});
+  assert.equal(result.structuredContent.returnedCount,1);
+  assert.deepEqual(result.structuredContent.appliedFilters,{keyword:'',district:'북구',availableOnly:true,limit:10});
+  const invalid=await client.callTool({name:'search_parking',arguments:{district:'부산'}});
+  assert.equal(invalid.isError,true);
+ });
+});
