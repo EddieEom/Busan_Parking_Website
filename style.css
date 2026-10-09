@@ -390,3 +390,19 @@ aside {
 .address-note{font-size:13px;color:var(--muted);background:#f4f7fb;padding:10px;border-radius:7px}.map-link{display:block;text-align:center;padding:10px 12px;background:#fee500;color:#242424;font-weight:650;text-decoration:none;border-radius:7px;margin:10px 0 16px}.map-link:hover{background:#ecd400}.details>div{grid-template-columns:100px 1fr}
 
 .install-panel{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 20px}.install-panel p{font-size:13px;color:var(--muted);margin:0}.install-panel:has([hidden]:only-child){display:none}
+
+/* AI 답변: 표와 목록을 실제 요소로 표시하고 작은 화면에서는 표만 스크롤합니다. */
+.chat-answer{white-space:normal;line-height:1.8;background:#f7faff;border:1px solid #dce6f1;padding:24px;color:var(--ink);min-width:0}
+.chat-answer:focus{outline:none}
+.chat-answer>:first-child{margin-top:0}.chat-answer>:last-child{margin-bottom:0}
+.chat-answer p{margin:0 0 16px}.chat-answer h3,.chat-answer h4,.chat-answer h5,.chat-answer h6{margin:24px 0 12px;line-height:1.5;font-size:18px;color:#10365e}
+.chat-answer strong{font-weight:700;color:#10365e}.chat-answer ul,.chat-answer ol{padding-left:24px;margin:12px 0 20px}.chat-answer li{padding-left:3px;margin:6px 0}
+.chat-answer code{background:#e8eff7;border-radius:4px;padding:2px 5px;font-size:.9em}.chat-answer pre{overflow-x:auto;white-space:pre;padding:14px;background:#e8eff7;border-radius:8px}.chat-answer pre code{padding:0}
+.chat-answer hr{border:0;border-top:1px solid #dce6f1;margin:24px 0}
+.answer-table-scroll{max-width:100%;overflow-x:auto;margin:16px 0 24px;border:1px solid #dce6f1;border-radius:9px;background:white}
+.answer-table-scroll:focus-visible{outline:2px solid #1765c0;outline-offset:3px}
+.chat-answer table{width:100%;min-width:680px;border-collapse:collapse;font-size:14px;line-height:1.65}
+.chat-answer th{text-align:left;padding:13px 14px;background:#eaf1f9;color:#10365e;font-weight:700;white-space:nowrap}
+.chat-answer td{padding:14px;border-top:1px solid #e4ebf3;vertical-align:top;min-width:75px}
+.chat-answer tbody tr:nth-child(even){background:#f8fafc}.chat-answer td:first-child{min-width:32px;color:var(--muted)}
+@media(max-width:600px){.chat-answer{padding:16px;font-size:14px}.chat-answer table{font-size:13px}.chat-answer th,.chat-answer td{padding:11px}.chat-panel{padding:16px}}
