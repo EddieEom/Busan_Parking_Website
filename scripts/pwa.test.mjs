@@ -34,3 +34,30 @@ test('manifest 아이콘 크기와 설치 파일 경로가 실제 파일과 일�
   const png=readFileSync(file);assert.equal(png.readUInt32BE(16),Number(icon.sizes.split('x')[0]));
  }
 });
+
+test('정적 파일 설치 완료 후 새 서비스 워커 자동 활성화',async()=>{
+ let activated=0,installed=false,promise;const handlers={};
+ const self={addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:()=>{assert.equal(installed,true);activated++;}};
+ vm.runInNewContext(source,{self,caches:{open:async()=>({addAll:async()=>{installed=true;}})}});
+ handlers.install({waitUntil:p=>promise=p});await promise;assert.equal(activated,1);
+});
+const pwaSource=readFileSync(new URL('../pwa.js',import.meta.url),'utf8');
+async function appSetup({controlled=true,draft='',busy=false,answer=false}={}){
+ const handlers={},messages=[],elements={};let reloads=0;
+ for(const id of ['install-app','install-note'])elements[id]={hidden:true,addEventListener:()=>{}};
+ elements['chat-question']={value:draft,disabled:busy};elements['chat-answer']={hidden:!answer};
+ const registration={waiting:{postMessage:message=>messages.push(message)},addEventListener:()=>{},update:async()=>{}};
+ const navigator={userAgent:'',serviceWorker:{controller:controlled?{}:null,register:async()=>registration,addEventListener:(name,fn)=>handlers[name]=fn}};
+ vm.runInNewContext(pwaSource,{navigator,window:{navigator,matchMedia:()=>({matches:false}),addEventListener:()=>{},location:{reload:()=>reloads++}},document:{visibilityState:'visible',getElementById:id=>elements[id],addEventListener:()=>{}}});
+ await Promise.resolve();return {handlers,messages,get reloads(){return reloads;}};
+}
+test('기존 앱은 버튼 없이 업데이트하고 빈 화면만 자동 새로고침',async()=>{
+ const app=await appSetup();assert.deepEqual(JSON.parse(JSON.stringify(app.messages)),[{type:'SKIP_WAITING'}]);
+ app.handlers.controllerchange();app.handlers.controllerchange();assert.equal(app.reloads,1);
+ const first=await appSetup({controlled:false});first.handlers.controllerchange();assert.equal(first.reloads,0);
+});
+test('자동 업데이트가 작성 중 질문·AI 요청·읽는 답변을 지우지 않음',async()=>{
+ for(const state of [{draft:'화명 주차장'},{busy:true},{answer:true}]){
+  const app=await appSetup(state);app.handlers.controllerchange();assert.equal(app.reloads,0);assert.equal(app.messages.length,1);
+ }
+});
