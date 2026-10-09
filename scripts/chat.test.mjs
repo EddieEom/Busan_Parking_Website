@@ -6,7 +6,7 @@ const request=(body,origin='https://parking.example')=>new Request('https://park
 const question={question:'화명 주차장 찾아줘',turnstileToken:'verified-token'};
 test('설정 조회에는 공개 site key만 반환',async()=>{
  const r=await handleChat({request:new Request('https://parking.example/api/chat'),env});
- assert.deepEqual(await r.json(),{enabled:true,siteKey:'public-site',missingSettings:[],configVersion:'openrouter-config-v1'});
+ assert.deepEqual(await r.json(),{enabled:true,siteKey:'public-site',missingSettings:[],model:'openai/gpt-4.1-mini',configVersion:'openrouter-config-v2'});
  const disabled=await handleChat({request:new Request('https://parking.example/api/chat'),env:{}});
  const data=await disabled.json();assert.equal(data.enabled,false);
  assert.deepEqual(data.missingSettings,['OPENROUTER_API_KEY','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY']);
@@ -53,5 +53,11 @@ test('잔액·요청한도·혼잡은 구분하며 외부 오류 내용은 숨�
  for(const [status,http,word] of [[402,503,'잔액'],[429,429,'한도'],[503,503,'혼잡']]) {
   const r=await handleChat({request:request(question),env},async()=>Response.json({success:true,hostname:'parking.example',action:'parking_chat'}),async()=>{throw Object.assign(new Error('private-openrouter'),{status});});
   assert.equal(r.status,http);const body=await r.text();assert.ok(body.includes(word));assert.ok(!body.includes('private-openrouter'));
+ }
+});
+test('웹 AI의 키 인증·모델 라우팅·MCP 연결 실패를 비밀값 없이 구분',async()=>{
+ for(const [status,code,expected] of [[401,'OPENROUTER_HTTP_ERROR','OPENROUTER_AUTH_FAILED'],[404,'OPENROUTER_HTTP_ERROR','OPENROUTER_MODEL_UNAVAILABLE'],[502,'MCP_CONNECTION_FAILED','MCP_CONNECTION_FAILED']]) {
+  const r=await handleChat({request:request(question),env},async()=>Response.json({success:true,hostname:'parking.example',action:'parking_chat'}),async()=>{throw Object.assign(new Error('private-openrouter private-mcp'),{status,code});});
+  const text=await r.text();assert.equal(r.status,502);assert.equal(JSON.parse(text).code,expected);assert.ok(!text.includes('private-'));
  }
 });
