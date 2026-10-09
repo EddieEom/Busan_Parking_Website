@@ -1,3 +1,4 @@
+import {renderAnswerHtml} from './answer-renderer.js';
 (() => {
   const get=id=>document.getElementById(id);
   let token='',widget=null,busy=false;
@@ -28,7 +29,7 @@
       const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({question,turnstileToken:token}),cache:'no-store',signal:AbortSignal.timeout(130000)});
       const data=await response.json();if(!response.ok)throw new Error(data.message||'답변을 확인하지 못했습니다.');
-      get('chat-answer').textContent=data.answer;get('chat-answer').hidden=false;get('chat-answer').focus();
+      get('chat-answer').innerHTML=renderAnswerHtml(data.answer);get('chat-answer').hidden=false;get('chat-answer').focus();
       get('chat-status').textContent=(data.warnings||[]).join(' ')||'최신 주차정보 조회를 마쳤습니다.';
     }catch(error){get('chat-status').textContent=error.name==='TimeoutError'?'답변이 지연되고 있습니다. 잠시 후 다시 질문해 주세요.':error.message;}
     finally{busy=false;token='';get('chat-question').disabled=false;if(widget!==null)window.turnstile.reset(widget);update();}
