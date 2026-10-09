@@ -1,8 +1,21 @@
 import {askOpenRouter, DEFAULT_MODEL} from '../../mcp-server/openrouterClient.js';
+import {onRequest as handleLocalMcp} from './mcp.js';
 const json = (data, status = 200) => Response.json(data, {status, headers: {'Cache-Control':'no-store'}});
 const requiredSettings = ['OPENROUTER_API_KEY','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY'];
 const missingSettings = env => requiredSettings.filter(name => !env[name]?.trim());
 const configured = env => missingSettings(env).length === 0;
+// 같은 Pages 배포의 MCP는 인터넷으로 자신을 재호출하지 않고 실제 HTTP 처리기로 전달합니다.
+// SDK의 initialize/listTools/callTool 및 MCP 인증은 그대로 적용됩니다.
+export function createMcpFetch(context, fetchImpl, handle = handleLocalMcp) {
+  const local = new URL('/api/mcp',context.request.url);
+  return (input,init) => {
+    const target = new URL(input instanceof Request ? input.url : String(input));
+    if(target.origin===local.origin && target.pathname===local.pathname) {
+      return handle({...context,request:new Request(input,init)});
+    }
+    return fetchImpl(input,init);
+  };
+}
 async function readBody(request) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('EMPTY');
@@ -49,7 +62,7 @@ export async function handleChat(context, fetchImpl = globalThis.fetch, ask = as
     }
     const result=await ask({apiKey:env.OPENROUTER_API_KEY,model:env.OPENROUTER_MODEL?.trim()||DEFAULT_MODEL,
       mcpUrl:env.MCP_SERVER_URL?.trim()||new URL('/api/mcp',url).href,
-      mcpToken:env.MCP_AUTH_TOKEN?.trim(),question:body.question.trim(),timeoutMs:110000},fetchImpl);
+      mcpToken:env.MCP_AUTH_TOKEN?.trim(),question:body.question.trim(),timeoutMs:110000},createMcpFetch(context,fetchImpl));
     return json({answer:result.text,toolCalls:result.toolCalls,warnings:result.warnings,completion:result.completion});
   } catch(error) {
     // 외부 오류에는 키/인증 헤더가 포함될 수 있으므로 브라우저에 그대로 전달하지 않습니다.

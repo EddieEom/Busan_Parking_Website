@@ -1,9 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {handleChat} from '../functions/api/chat.js';
+import {handleChat,createMcpFetch} from '../functions/api/chat.js';
+import {connectParkingMcp} from '../mcp-server/openrouterClient.js';
+import {handleMcpRequest} from '../mcp-server/httpHandler.js';
 const env={OPENROUTER_API_KEY:'private-openrouter',TURNSTILE_SITE_KEY:'public-site',TURNSTILE_SECRET_KEY:'private-turnstile',MCP_AUTH_TOKEN:'private-mcp'};
 const request=(body,origin='https://parking.example')=>new Request('https://parking.example/api/chat',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)});
 const question={question:'화명 주차장 찾아줘',turnstileToken:'verified-token'};
+test('Pages 내부 MCP는 자기 사이트 fetch 없이 SDK 프로토콜·인증·검색을 실행',async()=>{
+ let network=0,handled=0;
+ const context={request:request(question),env};
+ const dispatch=createMcpFetch(context,async()=>{network++;return Response.json({external:true});},async ctx=>{
+  handled++;assert.equal(ctx.env,env);
+  return handleMcpRequest(ctx.request,{token:env.MCP_AUTH_TOKEN,fetchImpl:async()=>Response.json({items:[{id:'1',source:'realtime',code:'1',name:'화명',district:'북구',available:3}]})});
+ });
+ const client=await connectParkingMcp({mcpUrl:'https://parking.example/api/mcp',mcpToken:env.MCP_AUTH_TOKEN,signal:AbortSignal.timeout(5000)},dispatch);
+ try {
+  assert.equal((await client.listTools()).tools.length,3);
+  const result=await client.callTool({name:'search_parking',arguments:{keyword:'화명',limit:8}});
+  assert.equal(result.structuredContent.returnedCount,1);assert.equal(network,0);assert.ok(handled>=3);
+ } finally {await client.close();}
+ const rejected=await dispatch('https://parking.example/api/mcp',{method:'POST'});assert.equal(rejected.status,401);
+ await dispatch('https://other.example/api/mcp');
+ await dispatch('https://openrouter.ai/api/v1/chat/completions');assert.equal(network,2);
+});
 test('설정 조회에는 공개 site key만 반환',async()=>{
  const r=await handleChat({request:new Request('https://parking.example/api/chat'),env});
  assert.deepEqual(await r.json(),{enabled:true,siteKey:'public-site',missingSettings:[],model:'openai/gpt-4.1-mini',configVersion:'openrouter-config-v2'});

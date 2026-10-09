@@ -167,6 +167,8 @@ manifest, 192/512 PNG 아이콘, 설치 안내와 Service Worker를 추가했습
 
 ## 현재 기본 AI: OpenRouter
 
+Cloudflare 웹에서 같은 사이트의 `/api/mcp`는 SDK 요청을 서버 내부의 기존 MCP HTTP 처리기로 전달합니다. 자기 Pages 주소를 외부 HTTP로 재호출하지 않으며 MCP 인증과 프로토콜 검증은 유지합니다. 웹의 MCP_SERVER_URL은 생략하거나 현재 사이트의 `/api/mcp` 주소로 설정하세요. 별도 외부 MCP 주소를 지정하면 일반 HTTP로 연결합니다. 로컬 CLI는 배포 주소를 사용하는 기존 방식입니다.
+
 무료 모델 설정 예: `OPENROUTER_MODEL=nvidia/nemotron-3.5-lightning:free`. 이 제공자는 `parallel_tool_calls`를 지원하지 않으므로 요청에서 생략합니다. `require_parameters=true`와 필수 첫 검색은 유지하며 MCP 도구는 서버에서 순차 실행합니다. HTTP 404와 `failed_routing_step: Filter by Parameters`는 키 오류가 아니라 요청 옵션을 처리할 제공자가 없다는 뜻입니다.
 
 웹 `/api/chat`은 OpenRouter Chat Completions를 사용합니다. Gemini Interactions 파일과 `gemini` 명령은 이전 연결의 비교 진단용으로만 남겨 두었습니다. 웹은 Gemini 키를 사용하거나 자동으로 Gemini에 재시도하지 않습니다.
