@@ -57,7 +57,9 @@ export async function askOpenRouter({apiKey, model=DEFAULT_MODEL, question, mcpU
     for(let round=0; round<4; round++) {
       const response=await fetchImpl('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',headers:{Authorization:`Bearer ${apiKey.trim()}`,'Content-Type':'application/json'},signal,
-        body:JSON.stringify({model:model.trim(),messages,tools,max_tokens:1200,parallel_tool_calls:false,
+        // 무료 제공자 중 parallel_tool_calls를 지원하지 않는 곳이 있으므로 보내지 않습니다.
+        // 아래 실행 루프에서 도구를 순차 실행하며 검색 결과 및 호출 한도를 검증합니다.
+        body:JSON.stringify({model:model.trim(),messages,tools,max_tokens:1200,
           provider:{require_parameters:true}, tool_choice:round===0?{type:'function',function:{name:'search_parking'}}:'auto'})
       });
       let data; try {data=await response.json();} catch {throw new AiError('AI 응답 형식을 확인하지 못했습니다.');}

@@ -23,6 +23,18 @@ test('검색 호출 후 실제 MCP 결과와 연결한 답변만 반환, limit 8
  },f.connect);
  assert.equal(r.completion,'completed');assert.deepEqual(r.toolCalls,['search_parking']);assert.equal(f.calls[0].arguments.limit,8);assert.equal(f.closed,true);
 });
+test('무료 NVIDIA 제공자의 지원 옵션으로 검색과 답변을 완료',async()=>{
+ const supported=new Set(['model','messages','tools','max_tokens','provider','tool_choice']);
+ const f=fixture();let n=0;
+ const r=await askOpenRouter({...options,model:'nvidia/nemotron-3.5-lightning:free'},async(url,init)=>{
+  const body=JSON.parse(init.body);
+  // 지원하지 않는 parallel_tool_calls가 포함되면 실제 제공자처럼 라우팅 실패를 재현합니다.
+  if(Object.keys(body).some(key=>!supported.has(key))) return Response.json({error:{code:404,message:'No endpoints found that can handle the requested parameters.'}},{status:404});
+  assert.equal(body.provider.require_parameters,true);
+  return n++?answer():tool('search_parking',{keyword:'화명'});
+ },f.connect);
+ assert.deepEqual(r.toolCalls,['search_parking']);assert.equal(n,2);assert.equal(f.calls.length,1);
+});
 test('조회 없는 답변·잘린 답변·오류 결과를 검색 성공으로 인정하지 않음',async()=>{
  for(const mode of ['no-call','length','bad-result']){
   const f=fixture(mode==='bad-result'?{isError:true,content:[]}:undefined);let n=0;
