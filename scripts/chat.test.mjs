@@ -6,9 +6,16 @@ const request=(body,origin='https://parking.example')=>new Request('https://park
 const question={question:'화명 주차장 찾아줘',turnstileToken:'verified-token'};
 test('설정 조회에는 공개 site key만 반환',async()=>{
  const r=await handleChat({request:new Request('https://parking.example/api/chat'),env});
- assert.deepEqual(await r.json(),{enabled:true,siteKey:'public-site'});
+ assert.deepEqual(await r.json(),{enabled:true,siteKey:'public-site',missingSettings:[],configVersion:'openrouter-config-v1'});
  const disabled=await handleChat({request:new Request('https://parking.example/api/chat'),env:{}});
- assert.equal((await disabled.json()).enabled,false);
+ const data=await disabled.json();assert.equal(data.enabled,false);
+ assert.deepEqual(data.missingSettings,['OPENROUTER_API_KEY','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY']);
+ for(const name of ['OPENROUTER_API_KEY','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY']) {
+  const partial=await handleChat({request:new Request('https://parking.example/api/chat'),env:{...env,[name]:'  '}});
+  const text=await partial.text();const result=JSON.parse(text);
+  assert.deepEqual(result.missingSettings,[name]);assert.equal(result.siteKey,null);
+  for(const secret of ['private-openrouter','private-turnstile','private-mcp'])assert.ok(!text.includes(secret));
+ }
 });
 test('외부 Origin·초과 본문·미설정은 Gemini 호출 전에 거절',async()=>{
  let calls=0;const fetcher=async()=>{calls++;throw Error('should not call');};

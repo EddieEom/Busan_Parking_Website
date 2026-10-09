@@ -1,6 +1,8 @@
 import {askOpenRouter, DEFAULT_MODEL} from '../../mcp-server/openrouterClient.js';
 const json = (data, status = 200) => Response.json(data, {status, headers: {'Cache-Control':'no-store'}});
-const configured = env => !!(env.OPENROUTER_API_KEY?.trim() && env.TURNSTILE_SITE_KEY?.trim() && env.TURNSTILE_SECRET_KEY?.trim());
+const requiredSettings = ['OPENROUTER_API_KEY','TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY'];
+const missingSettings = env => requiredSettings.filter(name => !env[name]?.trim());
+const configured = env => missingSettings(env).length === 0;
 async function readBody(request) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('EMPTY');
@@ -20,7 +22,11 @@ async function readBody(request) {
 export async function handleChat(context, fetchImpl = globalThis.fetch, ask = askOpenRouter) {
   const {request,env} = context;
   const url = new URL(request.url);
-  if(request.method==='GET') return json({enabled:configured(env),siteKey:configured(env)?env.TURNSTILE_SITE_KEY.trim():null});
+  if(request.method==='GET') {
+    const missing=missingSettings(env);
+    return json({enabled:missing.length===0,siteKey:missing.length===0?env.TURNSTILE_SITE_KEY.trim():null,
+      missingSettings:missing,configVersion:'openrouter-config-v1'});
+  }
   if(request.method!=='POST') return json({message:'지원하지 않는 요청입니다.'},405);
   if(request.headers.get('Origin')!==url.origin) return json({message:'현재 사이트에서 질문해 주세요.'},403);
   if(!configured(env)) return json({message:'AI 안내를 준비 중입니다. 주차장 목록 검색을 이용해 주세요.'},503);
