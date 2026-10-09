@@ -69,11 +69,22 @@ test('도구 호출이 반복되면 4라운드에서 종료·잘못된 설정은
  await assert.rejects(askOpenRouter({...options,question:''}));
  await assert.rejects(connectParkingMcp({mcpUrl:'http://evil.example',signal:AbortSignal.timeout(1000)},fetch));
 });
-test('SDK HTTP MCP 브리지는 기존 stateless 서버의 도구 목록·검색을 실제 프로토콜로 처리',async()=>{
- const fetcher=async(input,init)=>handleMcpRequest(new Request(input,init),{token:'secret-mcp',fetchImpl:async()=>Response.json({items:[{id:'1',source:'realtime',code:'1',name:'화명',district:'북구',address:'',available:3,status:'available',updatedAt:'2026-10-09 08:00:00'}]})});
+test('SDK HTTP MCP 브리지는 Cloudflare 지원 redirect 옵션으로 도구 목록·검색을 실제 프로토콜로 처리',async()=>{
+ const fetcher=async(input,init)=>{
+  assert.equal(init.redirect,'manual');
+  return handleMcpRequest(new Request(input,init),{token:'secret-mcp',fetchImpl:async()=>Response.json({items:[{id:'1',source:'realtime',code:'1',name:'화명',district:'북구',address:'',available:3,status:'available',updatedAt:'2026-10-09 08:00:00'}]})});
+ };
  const bridge=await connectParkingMcp({...options,signal:AbortSignal.timeout(5000)},fetcher);
  try {
   const list=await bridge.listTools();assert.deepEqual(list.tools.map(x=>x.name),names);
   const result=await bridge.callTool({name:'search_parking',arguments:{keyword:'화명',limit:8}});assert.equal(result.isError,undefined);assert.equal(result.structuredContent.returnedCount,1);
  } finally {await bridge.close();}
+});
+test('MCP 리다이렉트를 따라가지 않아 인증 토큰을 다른 주소에 보내지 않음',async()=>{
+ let calls=0;
+ await assert.rejects(connectParkingMcp({...options,signal:AbortSignal.timeout(5000)},async(input,init)=>{
+  calls++;assert.equal(init.redirect,'manual');
+  return new Response(null,{status:302,headers:{Location:'https://other.example/api/mcp'}});
+ }),e=>e.code==='MCP_CONNECTION_FAILED');
+ assert.equal(calls,1);
 });
