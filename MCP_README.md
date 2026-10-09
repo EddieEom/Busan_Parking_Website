@@ -167,6 +167,8 @@ manifest, 192/512 PNG 아이콘, 설치 안내와 Service Worker를 추가했습
 
 ## 현재 기본 AI: OpenRouter
 
+무료 모델 설정 예: `OPENROUTER_MODEL=nvidia/nemotron-3.5-lightning:free`. 이 제공자는 `parallel_tool_calls`를 지원하지 않으므로 요청에서 생략합니다. `require_parameters=true`와 필수 첫 검색은 유지하며 MCP 도구는 서버에서 순차 실행합니다. HTTP 404와 `failed_routing_step: Filter by Parameters`는 키 오류가 아니라 요청 옵션을 처리할 제공자가 없다는 뜻입니다.
+
 웹 `/api/chat`은 OpenRouter Chat Completions를 사용합니다. Gemini Interactions 파일과 `gemini` 명령은 이전 연결의 비교 진단용으로만 남겨 두었습니다. 웹은 Gemini 키를 사용하거나 자동으로 Gemini에 재시도하지 않습니다.
 
 Cloudflare Pages **Production**에 아래 값을 저장한 후 재배포하세요.
