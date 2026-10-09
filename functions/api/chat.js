@@ -25,7 +25,7 @@ export async function handleChat(context, fetchImpl = globalThis.fetch, ask = as
   if(request.method==='GET') {
     const missing=missingSettings(env);
     return json({enabled:missing.length===0,siteKey:missing.length===0?env.TURNSTILE_SITE_KEY.trim():null,
-      missingSettings:missing,configVersion:'openrouter-config-v1'});
+      missingSettings:missing,model:env.OPENROUTER_MODEL?.trim()||DEFAULT_MODEL,configVersion:'openrouter-config-v2'});
   }
   if(request.method!=='POST') return json({message:'지원하지 않는 요청입니다.'},405);
   if(request.headers.get('Origin')!==url.origin) return json({message:'현재 사이트에서 질문해 주세요.'},403);
@@ -53,6 +53,9 @@ export async function handleChat(context, fetchImpl = globalThis.fetch, ask = as
     return json({answer:result.text,toolCalls:result.toolCalls,warnings:result.warnings,completion:result.completion});
   } catch(error) {
     // 외부 오류에는 키/인증 헤더가 포함될 수 있으므로 브라우저에 그대로 전달하지 않습니다.
+    if(error.code==='MCP_CONNECTION_FAILED') return json({code:'MCP_CONNECTION_FAILED',message:'주차장 MCP 서버에 연결하지 못했습니다. 배포 설정의 MCP_SERVER_URL과 MCP_AUTH_TOKEN을 확인해 주세요.'},502);
+    if(error.status===401) return json({code:'OPENROUTER_AUTH_FAILED',message:'OpenRouter 키 인증에 실패했습니다. Cloudflare Production의 OPENROUTER_API_KEY를 확인해 주세요.'},502);
+    if(error.status===404) return json({code:'OPENROUTER_MODEL_UNAVAILABLE',message:'현재 모델 또는 요청 조건을 처리할 OpenRouter 제공자가 없습니다. Cloudflare Production의 OPENROUTER_MODEL을 확인해 주세요.'},502);
     if(error.status===402) return json({message:'AI 안내의 사용 잔액이 부족합니다. 주차장 목록 검색을 이용해 주세요.'},503);
     if(error.status===429) return json({message:'AI 요청 한도에 도달했습니다. 잠시 후 다시 질문해 주세요.'},429);
     if(error.status===503) return json({message:'AI 서버가 일시적으로 혼잡합니다. 잠시 후 다시 질문해 주세요.'},503);
