@@ -17,8 +17,14 @@ export async function connectParkingMcp({mcpUrl, mcpToken, signal}, fetchImpl) {
   }
   const client = new Client({name:'parking-openrouter',version:'1.0.0'});
   const transport = new StreamableHTTPClientTransport(url, {
-    requestInit:{redirect:'error', ...(mcpToken ? {headers:{Authorization:`Bearer ${mcpToken}`}} : {})},
-    fetch:(input, init) => fetchImpl(input, {...init, signal})
+    requestInit:{redirect:'manual', ...(mcpToken ? {headers:{Authorization:`Bearer ${mcpToken}`}} : {})},
+    fetch:async(input, init) => {
+      // Cloudflare Request는 redirect:error를 지원하지 않습니다. 인증 헤더를 다른 주소로
+      // 전달하지 않도록 manual로 받고 모든 리다이렉트는 직접 거절합니다.
+      const response=await fetchImpl(input, {...init,redirect:'manual',signal});
+      if(response.status>=300 && response.status<400) throw new AiError('MCP 리다이렉트는 허용하지 않습니다.',502,'MCP_CONNECTION_FAILED');
+      return response;
+    }
   });
   try {await client.connect(transport);} catch {await client.close(); throw new AiError('MCP 연결에 실패했습니다. 서버 주소와 인증 설정을 확인하세요.',502,'MCP_CONNECTION_FAILED');}
   return {
