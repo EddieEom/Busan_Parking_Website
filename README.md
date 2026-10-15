@@ -13,6 +13,16 @@
 | :--- | :--- | :--- |
 | **생성형 AI 활용 수업** | 요구사항 기반 AI 코드 생성 · 기능 확인 | Cloudflare Pages |
 
+## 실행 화면
+
+<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/main/assets/screenshots/parking-search.jpg" alt="부산 주차장 검색 및 AI 질문 화면" width="100%"/>
+
+**검색·AI 안내 화면**
+
+<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/main/assets/screenshots/parking-results.jpg" alt="주차장별 요금·운영시간·잔여 면수를 표시하는 조회 결과" width="100%"/>
+
+**조회 결과** · 주차장별 요금, 운영시간과 잔여 면수를 카드로 표시합니다.
+
 ## 🚘 결과물 한눈에 보기
 
 <table><tr>
