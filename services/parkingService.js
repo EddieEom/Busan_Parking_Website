@@ -57,18 +57,20 @@ function summarize(parking, now) {
   return {
     id: parkingId(parking), parkgcd: clean(parking.parkgcd), name: parking.name,
     district: clean(parking.district), address: clean(parking.address),
-    totalSpaces, availableSpaces: ['available', 'full'].includes(status) ? available : null,
+    totalSpaces, occupiedSpaces: count(parking.occupiedSpaces),
+    availableSpaces: ['available', 'full'].includes(status) ? available : null,
     status, realtimeSupported: parking.realtimeSupported === true, updatedAt,
     baseMinutes: count(parking.baseMinutes), baseFee: count(parking.baseFee),
     weekdayHours: clean(parking.weekdayHours), saturdayHours: clean(parking.saturdayHours),
     holidayHours: clean(parking.holidayHours), phone: clean(parking.phone),
     agency: clean(parking.agency), referenceDate: clean(parking.referenceDate),
+    basicMatched: parking.basicMatched === true, matchMethod: clean(parking.matchMethod),
     mapUrl: `https://map.kakao.com/link/search/${encodeURIComponent("부산 " + parking.name)}`
   };
 }
 
 // 네트워크 없이도 검증할 수 있는 검색 함수. 원본 items는 변경하지 않습니다.
-export function filterParkings(items, options = {}, now = Date.now()) {
+export function filterParkings(items, options = {}, now = Date.now(), sortBy = 'relevance') {
   const filters = validateOptions(options);
   if (!Array.isArray(items) || !items.every(p => p && typeof p === 'object' &&
       typeof p.name === 'string' && p.name.trim())) {
@@ -79,7 +81,14 @@ export function filterParkings(items, options = {}, now = Date.now()) {
     Number.isFinite(rank(p, term)) &&
     (!filters.district || normalize(p.district) === normalize(filters.district)) &&
     (!filters.availableOnly || p.status === 'available')
-  ).sort((a, b) => rank(a, term) - rank(b, term) || a.name.localeCompare(b.name, 'ko'));
+  ).sort((a, b) => {
+    if (sortBy === 'available' && a.availableSpaces !== b.availableSpaces) {
+      if (a.availableSpaces === null) return 1;
+      if (b.availableSpaces === null) return -1;
+      return b.availableSpaces - a.availableSpaces;
+    }
+    return rank(a, term) - rank(b, term) || a.name.localeCompare(b.name, 'ko');
+  });
   return {appliedFilters: filters, matchedCount: matched.length, returnedCount: Math.min(matched.length, filters.limit),
     items: matched.slice(0, filters.limit)};
 }
@@ -141,6 +150,11 @@ export function createParkingService({apiUrl = 'http://localhost:8788/api/parkin
       const {items, timestamp, meta} = await load();
       return {...meta, ...filterParkings(items, options, timestamp)};
     },
+    async findAvailableParking(options = {}) {
+      validateOptions(options);
+      const {items, timestamp, meta} = await load();
+      return {...meta, ...filterParkings(items, options, timestamp, 'available'), sortBy: 'available'};
+    },
     async compareParkings({ids, sortBy = 'available'} = {}) {
       if (!Array.isArray(ids) || ids.length < 2 || ids.length > 5 ||
           new Set(ids).size !== ids.length || ids.some(id => typeof id !== 'string' || !id || id.length > 2000) ||
@@ -157,10 +171,23 @@ export function createParkingService({apiUrl = 'http://localhost:8788/api/parkin
       return {...meta, sortBy, comparedCount: compared.length, items: compared,
         comparisonNote: '시간당 요금은 기본요금의 단순 환산값으로 실제 청구액이 아닙니다. 거리·현재 영업 여부는 계산하지 않습니다. 미확인 값은 정렬 마지막에 둡니다.'};
     },
-    async getParkingDetail({id} = {}) {
-      if (typeof id !== 'string' || !id || id.length > 2000) throw new ParkingServiceError('INVALID_INPUT', '검색 결과의 id를 입력하세요.');
+    async getParkingDetail({id, name, district = ''} = {}) {
+      const byId = id !== undefined;
+      if (byId ? typeof id !== 'string' || !id || id.length > 2000 || name !== undefined || district !== ''
+        : typeof name !== 'string' || !name.trim() || name.length > 100) {
+        throw new ParkingServiceError('INVALID_INPUT', '검색 결과의 id 또는 주차장 이름(name) 중 하나를 입력하세요.');
+      }
+      if (!byId) validateOptions({keyword: name, district});
       const {items, timestamp, meta} = await load();
-      return {...meta, parking: lookup(items, id, timestamp)};
+      if (byId) return {...meta, parking: lookup(items, id, timestamp)};
+      const found = filterParkings(items, {keyword: name, district, limit: 50}, timestamp);
+      const exact = items.filter(p => normalize(p.name) === normalize(name) && (!district || p.district === district.trim()));
+      const candidates = exact.length ? exact.map(p => summarize(p, timestamp)) : found.items;
+      const matchedCount = exact.length || found.matchedCount;
+      if (!matchedCount) throw new ParkingServiceError('NOT_FOUND', '주차장을 찾을 수 없습니다. 이름 또는 지역을 확인하세요.');
+      if (matchedCount === 1) return {...meta, parking: lookup(items, candidates[0].id, timestamp)};
+      return {...meta, requiresSelection: true, matchedCount, returnedCount: candidates.slice(0, 50).length,
+        candidates: candidates.slice(0, 50), message: '여러 주차장이 검색되었습니다. 이름과 지역·주소를 확인한 뒤 후보 id로 상세조회하세요.'};
     }
   };
 }

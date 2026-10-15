@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>부산 공영주차장</title>
   <link rel="stylesheet" href="style.css">
-  <script src="app.js" defer></script>
+  <script src="app.js" type="module"></script>
   <script src="chat.js" type="module"></script>
   <script src="pwa.js" defer></script>
 </head>
@@ -33,6 +33,11 @@
       </form>
       <p id="chat-status" role="status" aria-live="polite"></p>
       <div id="chat-answer" class="chat-answer" tabindex="-1" hidden></div>
+      <section id="chat-results" class="chat-results" aria-labelledby="chat-results-title" hidden>
+        <h3 id="chat-results-title">조회한 주차장</h3>
+        <p id="chat-results-note" role="status"></p>
+        <ul id="chat-parking-list" class="parking-list"></ul>
+      </section>
     </section>
     <section class="filters" aria-label="검색 및 필터">
       <div class="field search"><label for="search">이름·주소 검색</label><input id="search" type="search" placeholder="예: 화명, 부산대역남측, 사하구" disabled></div>

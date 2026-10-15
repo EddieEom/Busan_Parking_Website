@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {askOpenRouter, connectParkingMcp} from '../openrouterClient.js';
 import {handleMcpRequest} from '../httpHandler.js';
 const options={apiKey:'secret-router',mcpToken:'secret-mcp',mcpUrl:'https://parking.example/api/mcp',question:'화명 주차장 찾아줘'};
-const names=['search_parking','get_parking_detail','compare_parkings'];
+const names=['search_parking','find_available_parking','get_parking_detail','compare_parkings'];
 const listing={tools:names.map(name=>({name,inputSchema:{type:'object',properties:{}}}))};
 const parking={id:'realtime:1',name:'화명',available:3};
 const payload={items:[parking],matchedCount:1,returnedCount:1};
@@ -18,7 +18,7 @@ test('검색 호출 후 실제 MCP 결과와 연결한 답변만 반환, limit 8
  const r=await askOpenRouter(options,async(url,init)=>{
   assert.equal(url,'https://openrouter.ai/api/v1/chat/completions');assert.equal(init.headers.Authorization,'Bearer secret-router');
   const body=JSON.parse(init.body);assert.equal(body.model,'openai/gpt-4.1-mini');assert.equal(body.max_tokens,1200);assert.ok(!init.body.includes('secret-mcp'));
-  if(!step++){assert.equal(body.tool_choice.function.name,'search_parking');return tool('search_parking',{keyword:'화명',limit:50});}
+  if(!step++){assert.equal(body.tool_choice,'required');return tool('search_parking',{keyword:'화명',limit:50});}
   assert.equal(body.messages.at(-1).tool_call_id,'c1');assert.deepEqual(JSON.parse(body.messages.at(-1).content),payload);return answer();
  },f.connect);
  assert.equal(r.completion,'completed');assert.deepEqual(r.toolCalls,['search_parking']);assert.equal(f.calls[0].arguments.limit,8);assert.equal(f.closed,true);
@@ -87,4 +87,30 @@ test('MCP 리다이렉트를 따라가지 않아 인증 토큰을 다른 주소�
   return new Response(null,{status:302,headers:{Location:'https://other.example/api/mcp'}});
  }),e=>e.code==='MCP_CONNECTION_FAILED');
  assert.equal(calls,1);
+});
+
+test('AI가 첫 도구로 빈자리순 또는 이름 상세를 선택하고 검증된 카드·경고 반환',async()=>{
+ for(const name of ['find_available_parking','get_parking_detail']){
+  const data=name==='get_parking_detail'?{parking,warnings:['주소 확인 필요']}:{...payload,warnings:['주소 확인 필요']};
+  const f=fixture({structuredContent:data});let n=0;
+  const result=await askOpenRouter(options,async()=>n++?answer():tool(name,name==='get_parking_detail'?{name:'화명'}:{keyword:'화명'}),f.connect);
+  assert.deepEqual(result.parkings,[parking]);assert.deepEqual(result.warnings,['주소 확인 필요']);
+  assert.deepEqual(result.toolCalls,[name]);
+ }
+});
+
+test('동명 후보는 선택 필요 상태로 반환하고 같은 질문에서 임의 id 확정 차단',async()=>{
+ const candidates=[parking,{...parking,id:'realtime:2',name:'화명 남구'}];
+ const f=fixture({structuredContent:{requiresSelection:true,candidates,matchedCount:2,returnedCount:2}});
+ let n=0;const result=await askOpenRouter(options,async()=>n++?answer():tool('get_parking_detail',{name:'화명'}),f.connect);
+ assert.equal(result.requiresSelection,true);assert.deepEqual(result.parkings,candidates);
+ n=0;
+ await assert.rejects(askOpenRouter(options,async()=>n++?tool('get_parking_detail',{id:parking.id},'c2'):tool('get_parking_detail',{name:'화명'}),f.connect));
+});
+
+test('후속 조회 실패 시 앞선 검색 카드로 성공을 가장하지 않음',async()=>{
+ let n=0;const f=fixture();
+ const connect=async()=>({listTools:async()=>listing,callTool:async p=>p.name==='search_parking'?{structuredContent:payload}:{isError:true},close:async()=>{}});
+ await assert.rejects(askOpenRouter(options,async()=>[tool('search_parking',{}),tool('get_parking_detail',{id:parking.id},'c2'),answer()][n++],connect));
+ assert.equal(n,2);
 });

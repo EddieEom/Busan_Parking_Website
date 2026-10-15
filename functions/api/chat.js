@@ -63,7 +63,9 @@ export async function handleChat(context, fetchImpl = globalThis.fetch, ask = as
     const result=await ask({apiKey:env.OPENROUTER_API_KEY,model:env.OPENROUTER_MODEL?.trim()||DEFAULT_MODEL,
       mcpUrl:env.MCP_SERVER_URL?.trim()||new URL('/api/mcp',url).href,
       mcpToken:env.MCP_AUTH_TOKEN?.trim(),question:body.question.trim(),timeoutMs:110000},createMcpFetch(context,fetchImpl));
-    return json({answer:result.text,toolCalls:result.toolCalls,warnings:result.warnings,completion:result.completion});
+    return json({answer:result.text,toolCalls:result.toolCalls,warnings:result.warnings,completion:result.completion,
+      parkings:result.parkings ?? [],fetchedAt:result.fetchedAt ?? null,checkedAt:result.checkedAt ?? null,
+      requiresSelection:result.requiresSelection === true,matchedCount:result.matchedCount ?? 0});
   } catch(error) {
     // 외부 오류에는 키/인증 헤더가 포함될 수 있으므로 브라우저에 그대로 전달하지 않습니다.
     if(error.code==='MCP_CONNECTION_FAILED') return json({code:'MCP_CONNECTION_FAILED',message:'주차장 MCP 서버에 연결하지 못했습니다. 배포 설정의 MCP_SERVER_URL과 MCP_AUTH_TOKEN을 확인해 주세요.'},502);

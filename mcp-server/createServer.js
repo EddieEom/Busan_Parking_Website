@@ -26,10 +26,34 @@ export function createServer({apiUrl, service} = {}) {
       return {isError: true, content: [{type: 'text', text: JSON.stringify(result)}]};
     }
   });
+  server.registerTool('find_available_parking', {
+    title: '빈자리 많은 주차장 찾기',
+    description: '이름·주소·구·군으로 찾은 주차장을 최신 빈자리 많은 순으로 정렬한 뒤 상위 limit개를 반환합니다. 만차 0대와 미확인 값을 구분하며 갱신 지연·미확인은 마지막에 둡니다. 실제 주차 가능한 곳만 원하면 availableOnly=true를 사용하세요. 거리순은 지원하지 않습니다.',
+    inputSchema: z.object({
+      keyword: z.string().max(100).default(''),
+      district: z.enum(['', ...DISTRICTS]).default(''),
+      availableOnly: z.boolean().default(false),
+      limit: z.number().int().min(1).max(50).default(10)
+    }).strict(),
+    annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true}
+  }, async options => {
+    try {
+      const result = await parking.findAvailableParking(options);
+      return {content: [{type: 'text', text: JSON.stringify(result)}], structuredContent: result};
+    } catch (error) {
+      const result = error instanceof ParkingServiceError ? {code: error.code, message: error.message}
+        : {code: 'INTERNAL_ERROR', message: '빈자리순 조회 중 오류가 발생했습니다.'};
+      return {isError: true, content: [{type: 'text', text: JSON.stringify(result)}]};
+    }
+  });
   server.registerTool('get_parking_detail', {
     title: '주차장 상세조회',
-    description: 'search_parking 결과의 id로 주차장 하나의 최신 현황·요금·요일별 운영시간·지도 링크를 조회합니다. id를 추측하지 마세요.',
-    inputSchema: z.object({id: z.string().min(1).max(2000)}).strict(),
+    description: '검색 결과 id 또는 주차장 이름 name 중 하나로 최신 현황·요금·요일별 운영시간·지도 링크를 조회합니다. 이름은 정확히 일치하는 대상을 우선하고 여러 대상이면 requiresSelection과 candidates를 반환합니다. 후보를 임의로 확정하지 마세요. 이름 조회 시 district로 지역을 좁힐 수 있습니다. id를 추측하지 마세요.',
+    inputSchema: z.object({id: z.string().min(1).max(2000).optional(),
+      name: z.string().trim().min(1).max(100).optional(),
+      district: z.enum(['', ...DISTRICTS]).optional()}).strict()
+      .refine(value => (value.id !== undefined) !== (value.name !== undefined), 'id 또는 name 하나가 필요합니다.')
+      .refine(value => !value.id || !value.district, 'district는 이름 조회에만 사용합니다.'),
     annotations: {readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true}
   }, async options => {
     try {

@@ -39,7 +39,7 @@ test('실제 stdio 서버의 연결과 tools/list', {timeout: 15000}, async () =
   await withClient('/api/parking', async client => {
     assert.equal(client.getServerVersion().name, 'busan-parking');
     const {tools} = await client.listTools();
-    assert.deepEqual(tools.map(t => t.name), ['search_parking', 'get_parking_detail', 'compare_parkings']);
+    assert.deepEqual(tools.map(t => t.name), ['search_parking', 'find_available_parking', 'get_parking_detail', 'compare_parkings']);
     assert.equal(tools[0].inputSchema.properties.limit.maximum, 50);
     assert.equal(tools[0].annotations.readOnlyHint, true);
   });
@@ -109,5 +109,19 @@ test('실제 MCP 비교 도구',async()=>{
   const found=await client.callTool({name:'search_parking',arguments:{}});
   const result=await client.callTool({name:'compare_parkings',arguments:{ids:found.structuredContent.items.map(p=>p.id)}});
   assert.notEqual(result.isError,true);assert.equal(result.structuredContent.comparedCount,2);
+ });
+});
+
+test('V6.2 빈자리순·이름 상세·중복 후보를 실제 stdio로 확인',async()=>{
+ await withClient('/api/parking',async client=>{
+  const sorted=await client.callTool({name:'find_available_parking',arguments:{keyword:'화명',limit:1}});
+  assert.equal(sorted.isError,undefined);assert.equal(sorted.structuredContent.items[0].availableSpaces,5);
+  const detail=await client.callTool({name:'get_parking_detail',arguments:{name:'화명'}});
+  assert.equal(detail.structuredContent.parking.name,'화명');
+  const candidates=await client.callTool({name:'get_parking_detail',arguments:{name:'화'}});
+  assert.equal(candidates.structuredContent.requiresSelection,true);
+  assert.equal(candidates.structuredContent.candidates.length,2);
+  const invalid=await client.callTool({name:'get_parking_detail',arguments:{id:'id',name:'화명'}});
+  assert.equal(invalid.isError,true);
  });
 });

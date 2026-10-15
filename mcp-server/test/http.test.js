@@ -21,11 +21,17 @@ test('stateless HTTP로 연결·도구 목록·호출', async () => {
     }], warnings: []});
   });
   try {
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ['search_parking', 'get_parking_detail', 'compare_parkings']);
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ['search_parking', 'find_available_parking', 'get_parking_detail', 'compare_parkings']);
     assert.equal(count, 0);
     const result = await client.callTool({name: 'search_parking', arguments: {keyword: '화명'}});
     assert.equal(result.structuredContent.matchedCount, 1);
     assert.equal(count, 1);
+    const available = await client.callTool({name: 'find_available_parking', arguments: {keyword: '화명', limit: 5}});
+    assert.equal(available.structuredContent.sortBy, 'available');
+    assert.equal(available.structuredContent.items[0].availableSpaces, null);
+    const detail = await client.callTool({name: 'get_parking_detail', arguments: {name: '화명'}});
+    assert.equal(detail.structuredContent.parking.name, '화명');
+    assert.equal(count, 3);
   } finally {await client.close();}
 });
 test('HTTP 응답 캐시 차단 및 외부 Origin 거절', async () => {

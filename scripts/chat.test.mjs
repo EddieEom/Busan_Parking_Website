@@ -15,7 +15,7 @@ test('Pages 내부 MCP는 자기 사이트 fetch 없이 SDK 프로토콜·인증
  });
  const client=await connectParkingMcp({mcpUrl:'https://parking.example/api/mcp',mcpToken:env.MCP_AUTH_TOKEN,signal:AbortSignal.timeout(5000)},dispatch);
  try {
-  assert.equal((await client.listTools()).tools.length,3);
+  assert.equal((await client.listTools()).tools.length,4);
   const result=await client.callTool({name:'search_parking',arguments:{keyword:'화명',limit:8}});
   assert.equal(result.structuredContent.returnedCount,1);assert.equal(network,0);assert.ok(handled>=3);
  } finally {await client.close();}
@@ -54,10 +54,13 @@ test('사용자 확인→OpenRouter 설정 전달, 답변에는 비밀값 미포
  const response=await handleChat({request:request(question),env},async()=>Response.json({success:true,hostname:'parking.example',action:'parking_chat'}),async(options)=>{
   assert.equal(options.apiKey,'private-openrouter');assert.equal(options.model,'openai/gpt-4.1-mini');
   assert.equal(options.mcpUrl,'https://parking.example/api/mcp');assert.equal(options.mcpToken,'private-mcp');
-  return {text:'검색 결과입니다.',toolCalls:['search_parking'],warnings:[],completion:'completed'};
+  return {text:'검색 결과입니다.',toolCalls:['search_parking'],warnings:['기본정보 확인 필요'],completion:'completed',
+    parkings:[{id:'realtime:1',name:'화명역'}],fetchedAt:'2026-10-15T04:30:00Z',checkedAt:'2026-10-15T04:30:01Z',requiresSelection:false,matchedCount:1};
  });
  assert.equal(response.status,200);const data=await response.json();
  assert.equal(data.answer,'검색 결과입니다.');assert.equal(JSON.stringify(data).includes('private-'),false);
+ assert.deepEqual(data.parkings,[{id:'realtime:1',name:'화명역'}]);assert.equal(data.matchedCount,1);
+ assert.equal(data.fetchedAt,'2026-10-15T04:30:00Z');assert.deepEqual(data.warnings,['기본정보 확인 필요']);
 });
 test('외부 오류 메시지에 포함된 비밀값은 노출하지 않음',async()=>{
  let count=0;

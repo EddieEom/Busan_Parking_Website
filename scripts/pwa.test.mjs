@@ -35,6 +35,21 @@ test('manifest 아이콘 크기와 설치 파일 경로가 실제 파일과 일�
  }
 });
 
+test('일반 목록·AI 공통 카드 모듈을 포함해 오프라인 정적 의존성 전체 설치',async()=>{
+ let installed=[],promise;const handlers={};
+ const self={addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:()=>{}};
+ vm.runInNewContext(source,{self,caches:{open:async()=>({addAll:async files=>{installed=files;}})}});
+ handlers.install({waitUntil:p=>promise=p});await promise;
+ assert.ok(installed.includes('/parking-card.js'));
+ for(const path of installed){
+  if(path==='/')continue;
+  assert.ok(existsSync(new URL('..'+path,import.meta.url)),path);
+  if(!path.endsWith('.js'))continue;
+  const module=readFileSync(new URL('..'+path,import.meta.url),'utf8');
+  for(const match of module.matchAll(/from ['"]\.\/([^'"]+)['"]/g))assert.ok(installed.includes('/'+match[1]),match[1]);
+ }
+});
+
 test('정적 파일 설치 완료 후 새 서비스 워커 자동 활성화',async()=>{
  let activated=0,installed=false,promise;const handlers={};
  const self={addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:()=>{assert.equal(installed,true);activated++;}};

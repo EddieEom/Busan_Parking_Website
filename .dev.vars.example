@@ -2,8 +2,8 @@ DATA_API_KEY=
 BASIC_API_KEY=
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4.1-mini
-# 로컬 웹에서 연결할 배포된 MCP 주소입니다.
-MCP_SERVER_URL=https://busan-parking-website.pages.dev/api/mcp
+# 비워두면 현재 웹의 /api/mcp를 사용합니다. 외부 MCP 연결 시에만 주소를 지정하세요.
+MCP_SERVER_URL=
 MCP_AUTH_TOKEN=
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=

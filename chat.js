@@ -1,4 +1,5 @@
 import {renderAnswerHtml} from './answer-renderer.js';
+import {makeCard} from './parking-card.js';
 (() => {
   const get=id=>document.getElementById(id);
   let token='',widget=null,busy=false;
@@ -24,15 +25,32 @@ import {renderAnswerHtml} from './answer-renderer.js';
     event.preventDefault();if(busy||!token)return;
     const question=get('chat-question').value.trim();if(!question)return;
     busy=true;update();get('chat-question').disabled=true;
+    get('chat-results').hidden=true;get('chat-parking-list').replaceChildren();
     get('chat-status').textContent='최신 주차정보를 확인하고 있습니다…';get('chat-answer').hidden=true;
     try{
       const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({question,turnstileToken:token}),cache:'no-store',signal:AbortSignal.timeout(130000)});
       const data=await response.json();if(!response.ok)throw new Error(data.message||'답변을 확인하지 못했습니다.');
       get('chat-answer').innerHTML=renderAnswerHtml(data.answer);get('chat-answer').hidden=false;get('chat-answer').focus();
+      const parkings=Array.isArray(data.parkings)?data.parkings:[];
+      for(const parking of parkings) get('chat-parking-list').append(makeCard(parking,{showRaw:false,headingLevel:'h4'}));
+      get('chat-results').hidden=parkings.length===0;
+      get('chat-results-title').textContent=data.requiresSelection?'이름과 위치를 확인해 주세요':'조회한 주차장';
+      get('chat-results-note').textContent=data.requiresSelection
+        ? `일치하는 주차장 ${data.matchedCount}곳 중 ${parkings.length}곳입니다. 다음 질문에 정확한 이름과 지역을 적어 주세요.`
+        : `조회 결과 ${parkings.length}곳입니다. 현황 갱신 시각과 공공데이터 기준일을 확인하세요.`;
       get('chat-status').textContent=(data.warnings||[]).join(' ')||'최신 주차정보 조회를 마쳤습니다.';
     }catch(error){get('chat-status').textContent=error.name==='TimeoutError'?'답변이 지연되고 있습니다. 잠시 후 다시 질문해 주세요.':error.message;}
     finally{busy=false;token='';get('chat-question').disabled=false;if(widget!==null)window.turnstile.reset(widget);update();}
   });
   setup();
+  // 답변을 오래 읽는 동안에도 과거 빈자리를 현재 가능 대수로 표시하지 않습니다.
+  setInterval(()=>{
+    const list=get('chat-parking-list');
+    if(get('chat-results').hidden)return;
+    for(const card of list.children){
+      const parking=card.parkingData;
+      if(parking)card.replaceWith(makeCard(parking,{showRaw:false,headingLevel:'h4'}));
+    }
+  },60000);
 })();
