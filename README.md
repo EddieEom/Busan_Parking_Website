@@ -1,6 +1,25 @@
-# 부산 공영주차장 웹사이트
+<div align="center">
 
-부산 공영주차장의 기본정보와 실시간 현황을 조회하는 웹사이트입니다. HTML/CSS/JavaScript와 Cloudflare Pages Functions로 구성되며, OpenRouter 기반 AI 안내와 MCP, PWA를 지원합니다.
+# 부산 공영주차장
+
+**공공데이터로 조회하는 주차장 정보와 실시간 현황**
+
+</div>
+
+<p align="center"><img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-E9C46A?style=flat-square"/> <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare%20Pages-F38020?style=flat-square"/> <img alt="OpenRouter" src="https://img.shields.io/badge/OpenRouter-222222?style=flat-square"/> <img alt="MCP" src="https://img.shields.io/badge/MCP-4668A8?style=flat-square"/> <img alt="PWA" src="https://img.shields.io/badge/PWA-5A0FC8?style=flat-square"/></p>
+
+
+| 프로젝트 | 수행 범위 | 배포 |
+| :--- | :--- | :--- |
+| **생성형 AI 활용 수업** | 요구사항 기반 AI 코드 생성 · 기능 확인 | Cloudflare Pages |
+
+## 🚘 결과물 한눈에 보기
+
+<table><tr>
+<td width="33%" valign="top"><b>검색과 필터</b><br><br>이름 · 주소 · 구·군 검색<br>빈자리 · 요금 정렬</td>
+<td width="33%" valign="top"><b>실시간 정보</b><br><br>잔여 면수 · 갱신 시각<br>요금 · 운영시간 표시</td>
+<td width="33%" valign="top"><b>AI 안내</b><br><br>MCP 기반 조회·비교<br>질문에 맞는 주차장 카드</td>
+</tr></table>
 
 ## 프로젝트 배경과 수행 범위
 
@@ -12,6 +31,10 @@
 
 아래에는 결과물의 주요 기능과 실행·배포 방법을 정리했습니다.
 
+
+<details>
+<summary><b>📋 주요 기능 · 데이터 안내</b></summary>
+
 ## 주요 기능
 
 - 주차장 이름·주소·코드 검색, 구·군 및 주차 상태 필터, 빈자리·요금 정렬
@@ -21,6 +44,11 @@
 - 설치 가능한 PWA와 오프라인 정적 화면. API 응답과 AI 답변은 캐시하지 않습니다.
 
 실시간 정보가 10분을 초과했거나 갱신 시각을 확인할 수 없으면 주차 가능으로 판단하지 않습니다. 잔여 면수는 도착 시 주차를 보장하지 않으며, 주소·요금·운영시간은 제공기관 정보입니다.
+
+</details>
+
+<details>
+<summary><b>🗂️ 프로젝트 구조</b></summary>
 
 ## 프로젝트 구조
 
@@ -42,6 +70,11 @@
 ├─ .dev.vars.example            # 로컬 웹 환경변수 예제
 └─ MCP_README.md                # MCP/AI 연결 상세 안내
 ```
+
+</details>
+
+<details>
+<summary><b>⚙️ 로컬 실행 · API · 배포 · 검증</b></summary>
 
 ## 로컬 실행
 
@@ -116,3 +149,6 @@ npm --prefix mcp-server run check:http -- http://localhost:8788/api/mcp
 자동 테스트와 실제 외부 API·AI 호출은 구분해야 합니다. 실제 Turnstile, OpenRouter, 배포 연결은 각 환경의 키를 설정한 뒤 별도 확인합니다. MCP 도구·CLI·오류 진단은 [MCP_README.md](MCP_README.md)를 참고하세요.
 
 PWA는 HTTPS 배포에서 설치를 확인합니다. 정적 파일을 변경하면 `service-worker.js`의 `CACHE_NAME`을 갱신하세요. 오프라인에서는 캐시된 화면만 열 수 있으며, 최신 주차정보와 AI 안내에는 인터넷 연결이 필요합니다.
+
+</details>
+
