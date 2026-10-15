@@ -82,62 +82,12 @@ MCP 주소는 프로토콜 요청을 받는 주소입니다. 브라우저 주소
 Cloudflare에 선택적으로 `MCP_AUTH_TOKEN`을 설정하면 요청의 Bearer 토큰을 검사합니다.
 사용하는 경우 로컬 `.env`에도 동일한 토큰을 설정하세요.
 
-## Google AI Studio 키로 Gemini에 연결
 
-1. [Google AI Studio](https://aistudio.google.com/apikey)에서 Gemini API 키를 발급합니다.
-2. 배포된 `/api/mcp`의 `check:http`가 먼저 성공해야 합니다.
-3. `mcp-server/.env.example`을 `.env`로 복사하고 키와 실제 MCP 배포 주소를 설정합니다.
-
-```powershell
-cd mcp-server
-Copy-Item .env.example .env
-```
-
-`.env`에 설정할 값:
-
-```dotenv
-GEMINI_API_KEY=직접_발급한_키
-MCP_SERVER_URL=https://실제_배포주소.pages.dev/api/mcp
-GEMINI_MODEL=gemini-3.8-flash
-MCP_AUTH_TOKEN=
-```
-
-공공데이터의 `DATA_API_KEY`와 Gemini의 `GEMINI_API_KEY`는 서로 다른 키입니다.
-`.env`는 Git에서 제외되며 키를 HTML/브라우저 JavaScript에 넣지 않습니다.
-
-```powershell
-npm run gemini -- "화명동 공영주차장을 찾아줘. 잔여 면수와 갱신 시각도 알려줘."
-```
-
-한국어 답변과 `호출한 MCP 도구: search_parking`이 출력되면 첫 연동 검증을 마칩니다.
-Gemini는 인터넷에서 MCP 서버를 조회하므로 localhost 주소를 사용할 수 없습니다.
-모델 접근 오류가 있으면 AI Studio 프로젝트에서 사용 가능한 Remote MCP 지원 모델로 `GEMINI_MODEL`을 설정하세요.
-실제 요청은 프로젝트의 Gemini API 한도를 사용합니다.
-
-## 응답 해석
-
-- `matchedCount`: 조건에 맞는 전체 항목 수. `returnedCount`: 제한을 적용해 반환한 수.
-- `availableSpaces=0`: 최근 현황상 만차. `null`: 현재 빈자리 판단 불가.
-- `stale`: 10분 초과 지연 또는 확인할 수 없는 갱신 시각. 빈자리 필터에서 제외.
-- `warnings`: 공공데이터 API 일부 실패 시 전달되는 안내.
-- 주소는 공공데이터 기준이고 실제 위치와 다를 수 있습니다.
-- API 실패는 MCP `isError: true`, 검색 결과 없음은 정상 응답의 `matchedCount=0`입니다.
-
-## 참고 문서
-
-- [MCP SDK: 웹 표준 런타임](https://ts.sdk.modelcontextprotocol.io/v2/serving/web-standard.html)
-- [Gemini: Remote MCP](https://ai.google.dev/gemini-api/docs/function-calling#remote-mcp-model-context-protocol)
-- [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions-overview)
-
-## Gemini 완료 상태
-도구 선택은 `auto`로 두어 검색 후 답변을 마칠 수 있게 합니다. `completed`와 검색 결과만 확인된 `verified_result`를 구분합니다. `requires_action`에 미처리 호출이 남으면 실패하며, 모든 호출 결과와 답변이 확인된 경우에만 경고와 함께 표시합니다. 원격 상태를 임의로 completed로 바꾸거나 이미 수행한 도구를 다시 실행하지 않습니다.
 
 ## 웹 AI 안내 (5단계)
 `/api/chat`은 서버에서 Gemini를 호출하고 같은 MCP 서버의 검색·상세·비교 도구를 사용합니다. 브라우저에는 Gemini 키나 MCP 토큰을 보내지 않습니다. 질문마다 새로 조회하는 단일 질문 방식입니다.
 
 Cloudflare Pages → Settings → Variables and Secrets의 **Production**에 다음을 설정하고 재배포합니다.
-- `GEMINI_API_KEY`: AI Studio 키 (Secret)
-- `GEMINI_MODEL`: `gemini-3.6-flash` 권장, 선택 사항
 - `TURNSTILE_SITE_KEY`: Cloudflare Turnstile의 공개 사이트 키
 - `TURNSTILE_SECRET_KEY`: 같은 위젯의 비밀 키 (Secret)
 - `MCP_SERVER_URL`: 선택 사항. 생략하면 현재 사이트 `/api/mcp`. 로컬 개발에서는 배포된 HTTPS 주소를 입력
