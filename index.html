@@ -3,32 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#10365e">
+  <meta name="theme-color" content="#080d18">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>부산 공영주차장</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="v7.css">
   <link rel="stylesheet" href="v8.css">
+  <link rel="stylesheet" href="neon.css">
+  <script src="ui-effects.js" type="module"></script>
   <script src="app.js" type="module"></script>
   <script src="chat.js" type="module"></script>
   <script src="pwa.js" defer></script>
 </head>
 <body>
-  <header><div class="wrap brand"><span class="mark" aria-hidden="true">P</span> 부산 공영주차장</div></header>
+  <header><div class="wrap brand"><a class="brand-home" href="#" aria-label="부산 공영주차장 처음으로"><span class="mark" aria-hidden="true">P</span><span class="brand-copy">부산 공영주차장<small>BUSAN PARKING NETWORK</small></span></a><div class="header-meta"><span class="header-tag">부산의 주차를 연결하다</span><time id="city-clock" aria-label="한국 현재 시각"></time></div></div></header>
   <main class="wrap">
-    <div class="heading"><div><p class="eyebrow">BUSAN PARKING</p><h1>주차장 찾아보기</h1><p class="subtitle">실시간 주차현황과 주소·요금 정보를 한곳에서 확인하세요.</p></div><button id="load-button" type="button">최신정보 새로고침</button></div>
+    <section class="heading" aria-label="부산 주차 안내">
+      <div class="hero-copy"><p class="eyebrow">MOVE SMART. PARK EASY.</p><h1>빈자리까지,<br><em>더 빠르게.</em></h1><p class="subtitle">도시의 복잡함은 잠시 내려두세요.<br>가까운 주차장부터 빈자리와 요금까지, 한 번에.</p><div class="hero-actions"><button id="load-button" type="button">최신정보 새로고침</button><a class="hero-link" href="#search-panel">직접 찾아보기 ↗</a></div></div>
+      <div class="hero-radar" aria-hidden="true"><span class="radar-cross"></span><span class="radar-p">P</span><span class="radar-dot"></span><span class="radar-dot second"></span><span class="radar-label">FIND YOUR SPACE</span></div>
+    </section>
+    <section class="overview" aria-label="조회한 주차정보 요약">
+      <div class="overview-item"><span class="overview-label">조회한 주차장<small>PARKING SPOTS</small></span><strong class="overview-value"><span id="stat-total" data-count="0">—</span><small>곳</small></strong></div>
+      <div class="overview-item"><span class="overview-label">빈자리 확인<small>AVAILABLE NOW</small></span><strong class="overview-value"><span id="stat-available" data-count="0">—</span><small>곳</small></strong></div>
+      <div class="overview-item"><span class="overview-label">위치 제공<small>LOCATION READY</small></span><strong class="overview-value"><span id="stat-location" data-count="0">—</span><small>곳</small></strong></div>
+    </section>
     <div class="install-panel">
       <button id="install-app" type="button" class="secondary" hidden>앱처럼 설치하기</button>
       <p id="install-note" hidden></p>
     </div>
     <section class="chat-panel" aria-labelledby="chat-title">
-      <h2 id="chat-title">AI에게 주차장 물어보기</h2>
+      <p class="section-kicker">01 / ASK & DISCOVER</p>
+      <h2 id="chat-title">어디에 주차할까요?</h2>
       <p class="subtitle">예: 북구에서 빈자리 있는 주차장 찾아줘 · 화명역 요금과 운영시간 알려줘</p>
       <p id="chat-config" role="status">AI 안내 연결을 확인하고 있습니다.</p>
       <form id="chat-form" hidden>
         <label for="chat-question">질문</label>
         <textarea id="chat-question" maxlength="1000" rows="3" required placeholder="찾고 싶은 주차장과 조건을 적어 주세요."></textarea>
+        <div class="query-chips" aria-label="빠른 요청"><button type="button" class="query-chip" data-nearby>↗ 내 주변</button><button type="button" class="query-chip" data-query="빈자리 많은 주차장 3곳만 찾아줘">빈자리 많은 곳</button><button type="button" class="query-chip" data-query="화명역 요금과 운영시간 알려줘">화명역 요금·시간</button></div>
         <div id="chat-verify"></div>
         <div class="ai-actions"><button id="chat-send" type="submit" disabled>보내기</button><button id="voice-button" type="button" aria-label="말해서 주차장 찾기" aria-pressed="false" title="말해서 주차장 찾기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button></div>
         <p class="voice-help">마이크를 누르고 말해 보세요. “내 주변에서 빈자리 많은 주차장 찾아줘”</p>
@@ -42,7 +54,7 @@
         <ul id="chat-parking-list" class="parking-list"></ul>
       </section>
     </section>
-    <section class="filters" aria-label="검색 및 필터">
+    <section id="search-panel" class="filters" aria-label="검색 및 필터">
       <div class="field search"><label for="search">이름·주소 검색</label><div class="search-actions"><input id="search" type="search" placeholder="예: 화명, 부산대역남측, 사하구" disabled><button id="search-button" type="button">검색</button><button id="gps-button" type="button" aria-label="현재 위치 주변 주차장 찾기" title="현재 위치 주변 주차장 찾기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-8 8-14a8 8 0 0 0-16 0c0 6 8 14 8 14Z"/><circle cx="12" cy="8" r="3"/></svg></button></div></div>
       <div class="field"><label for="district">지역</label><select id="district" disabled><option value="">전체 지역</option></select></div>
       <div class="field"><label for="status">주차현황</label><select id="status" disabled><option value="">전체 현황</option><option value="available">주차 가능한 곳</option><option value="full">만차</option><option value="supported">실시간 제공 대상</option><option value="unknown">확인 필요 · 갱신 지연</option></select></div>

@@ -62,6 +62,10 @@ function filterAndSort(items, filters, now = Date.now()) {
   return result;
 }
 function render() {
+  const live=parkings.map(p=>currentParking(p,Date.now()));
+  for(const [id,value] of [['stat-total',parkings.length],['stat-available',live.filter(p=>p.status==='available'&&p.availableSpaces>0).length],['stat-location',parkings.filter(p=>parkingCoordinates(p)).length]]) {
+    const el=$(id);if(el.statValue!==value){el.statValue=value;el.textContent=number(value);el.setAttribute('data-count',String(value));}
+  }
   $('sort-default-button').textContent=currentLocation?'가까운 순':'기본순';
   $('sort-default-button').setAttribute('aria-pressed',String($('sort').value==='name'));
   $('sort-available-button').setAttribute('aria-pressed',String($('sort').value==='available'));
