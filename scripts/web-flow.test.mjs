@@ -86,3 +86,25 @@ test('일반 검색·정렬·새로고침은 AI와 별도로 동작하고 사용
     assert.equal(dom.get('warning').hidden,true);
   }finally{dom.restore();}
 });
+
+test('V7 GPS→가까운 5곳→빈자리순→새로고침 위치 유지→텍스트 검색 복귀',async()=>{
+ const dom=installDom();let gpsCalls=0,apiCalls=0;
+ const originalNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+ try {
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{onLine:true,geolocation:{getCurrentPosition(success){gpsCalls++;success({coords:{latitude:35.2,longitude:129.1}});}}}});
+  globalThis.fetch=async()=>{apiCalls++;return Response.json({items:Array.from({length:7},(_,i)=>({...parking(),name:'주차장'+i,
+   availableSpaces:i,raw:{basic:{xCdnt:35.2+i*.001,yCdnt:129.1}}})),fetchedAt:new Date().toISOString(),warnings:[]});};
+  const app=await import('../app.js?gps-flow');await new Promise(resolve=>setImmediate(resolve));
+  await app.requestNearby();
+  const cards=()=>dom.get('parking-list').children[0].children;
+  assert.equal(cards().length,5);assert.equal(cards()[0].parkingData.name,'주차장0');
+  assert.ok(cards()[0].textContent.includes('현재 위치에서 약 0m'));
+  dom.get('sort').value='available';dom.get('sort').handlers.change();
+  assert.equal(cards()[0].parkingData.name,'주차장4');
+  await dom.get('load-button').handlers.click();assert.equal(gpsCalls,1);assert.equal(apiCalls,2);assert.equal(cards().length,5);
+  assert.equal(cards()[0].parkingData.name,'주차장4');
+  dom.get('search').value='주차장6';dom.get('search').handlers.input();
+  assert.equal(cards().length,1);assert.equal(cards()[0].parkingData.name,'주차장6');
+  assert.equal(cards()[0].parkingData.distanceKm,undefined);
+ }finally{if(originalNavigator)Object.defineProperty(globalThis,'navigator',originalNavigator);else delete globalThis.navigator;dom.restore();}
+});

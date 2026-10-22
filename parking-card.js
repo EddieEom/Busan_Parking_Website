@@ -1,3 +1,4 @@
+import {formatDistance} from './geolocation.js';
 const numberFormat = new Intl.NumberFormat('ko-KR');
 const text = value => value == null ? '정보 없음' : String(value);
 const number = value => value == null ? '미확인' : numberFormat.format(value);
@@ -19,6 +20,7 @@ export function makeCard(p, {showRaw = true, now = Date.now(), headingLevel = 'h
   card.parkingData = p;
   const heading = element('div', null, 'card-heading');
   heading.append(element(headingLevel, p.name), element('span', p.district || '지역 미확인', 'district-badge'));
+  if(Number.isFinite(p.distanceKm))card.append(element('p',`현재 위치에서 ${formatDistance(p.distanceKm)} · 직선거리`,'distance-badge'));
   const spaces = freshAvailable(p);
   const availability = element('div', null, `availability ${p.status}`);
   availability.append(element('strong', spaces == null ? '확인 필요' : number(spaces)), element('span', spaces == null ? (p.status === 'stale' ? '갱신 지연' : '') : '대 주차 가능'));

@@ -1,9 +1,11 @@
 import {makeCard} from './parking-card.js';
+import {getCurrentLocation, nearbyParkings, locationError} from './geolocation.js';
 const $ = id => document.getElementById(id);
-const controls = ['search', 'district', 'status', 'sort', 'reset-button'];
+const controls = ['search', 'district', 'status', 'sort', 'reset-button', 'search-button'];
 const numberFormat = new Intl.NumberFormat('ko-KR');
 let parkings = [];
 let loading = false;
+let loadTask=null, currentLocation=null, locationRequest=0, locating=false;
 // 공백·괄호·쉼표를 생략해도 같은 이름을 찾을 수 있습니다.
 const normalize = value => String(value || '').normalize('NFKC').replace(/[\s(),·（）\[\]]/g, '').toLowerCase();
 const number = value => value == null ? '미확인' : numberFormat.format(value);
@@ -53,16 +55,22 @@ function filterAndSort(items, filters, now = Date.now()) {
     // 사용자가 선택한 숫자 정렬을 먼저 적용하고, 동률일 때 검색 관련도를 적용합니다.
     if (filters.sort === 'available') order = compareNullable(freshAvailable(a),freshAvailable(b),true);
     if (filters.sort === 'fee') order = compareNullable(hourlyFee(a),hourlyFee(b));
+    if (!order && currentLocation && filters.sort === 'name') order = a.distanceKm-b.distanceKm;
     return order || searchRank(a,term) - searchRank(b,term) || a.name.localeCompare(b.name,'ko');
   });
   return result;
 }
 function render() {
-  const results = filterAndSort(parkings, {search:$('search').value,district:$('district').value,status:$('status').value,sort:$('sort').value});
+  const nearby=currentLocation?nearbyParkings(parkings,currentLocation):null;
+  const results = filterAndSort(nearby||parkings, {search:$('search').value,district:$('district').value,status:$('status').value,sort:$('sort').value});
   const fragment = document.createDocumentFragment();
   for (const p of results) fragment.append(makeCard(p));
   $('parking-list').replaceChildren(fragment);
-  $('result').textContent = `전체 ${number(parkings.length)}곳 중 ${number(results.length)}곳 표시`;
+  $('result').textContent = currentLocation?`현재 위치 주변 ${number(results.length)}곳 · 직선거리 기준`: `전체 ${number(parkings.length)}곳 중 ${number(results.length)}곳 표시`;
+  if(currentLocation) {
+    $('location-status').textContent=!nearby.length?'위치 기반 검색에 사용할 주차장 좌표가 없습니다.':
+      (nearby[0].distanceKm>50?'현재 위치가 부산 데이터 범위와 멉니다. 가장 가까운 5곳을 표시합니다. ':'')+'직선거리이며 실제 이동거리·시간과 다릅니다. 카카오맵에서 위치를 확인하세요.';
+  }
   $('empty').hidden = results.length > 0;
 }
 function updateDistricts() {
@@ -118,12 +126,32 @@ async function load() {
     $('parking-list').setAttribute('aria-busy','false');
   }
 }
-$('load-button').addEventListener('click',load);
-$('search').addEventListener('input',render);
+function refresh(){if(loading)return loadTask;loadTask=load();return loadTask;}
+$('load-button').addEventListener('click',refresh);
+function leaveNearby(){currentLocation=null;locationRequest++;$('location-status').textContent='';}
+$('search').addEventListener('input',()=>{leaveNearby();render();});
+$('search-button').addEventListener('click',()=>{leaveNearby();render();});
+$('search').addEventListener('keydown',event=>{if(event.key==='Enter'){leaveNearby();render();}});
 for (const id of ['district','status','sort']) $(id).addEventListener('change',render);
 $('reset-button').addEventListener('click',()=>{
-  $('search').value = ''; $('district').value = ''; $('status').value = ''; $('sort').value = 'name';render();
+  leaveNearby();$('search').value = ''; $('district').value = ''; $('status').value = ''; $('sort').value = 'name';render();
 });
-load();
+export async function requestNearby({sort='name'}={}) {
+  if(locating)return;
+  locating=true;const request=++locationRequest;
+  $('gps-button').disabled=true;$('gps-button').setAttribute('aria-busy','true');
+  $('location-status').textContent='현재 위치를 확인하고 있습니다...';
+  try {
+    const position=await getCurrentLocation();
+    if(loading)await loadTask;else if(!parkings.length)await refresh();
+    if(request!==locationRequest)return;
+    currentLocation=position;
+    $('search').value='';$('district').value='';$('status').value='';$('sort').value=sort;
+    render();
+  } catch(error) {if(request===locationRequest)$('location-status').textContent=locationError(error);}
+  finally{locating=false;$('gps-button').disabled=false;$('gps-button').setAttribute('aria-busy','false');}
+}
+$('gps-button').addEventListener('click',()=>requestNearby());
+refresh();
 // 필터 조작 없이 화면을 열어둔 경우에도 지연된 빈자리를 다시 표시합니다.
 setInterval(() => {if (!loading && parkings.length) render();}, 60000);
