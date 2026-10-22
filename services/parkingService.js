@@ -1,6 +1,7 @@
 // MCP에서 사용할 공통 검색 서비스. 인증키 없이 기존 /api/parking을 호출합니다.
 const normalize = value => String(value ?? '').normalize('NFKC')
   .replace(/[\s(),·（）\[\]]/g, '').toLowerCase();
+const detailName = value => String(value).replace(/공영주차장|주차장|주차/g, '').trim();
 const clean = value => typeof value === 'string' && value.trim() ? value.trim() : null;
 const count = value => Number.isInteger(value) && value >= 0 ? value : null;
 
@@ -180,8 +181,10 @@ export function createParkingService({apiUrl = 'http://localhost:8788/api/parkin
       if (!byId) validateOptions({keyword: name, district});
       const {items, timestamp, meta} = await load();
       if (byId) return {...meta, parking: lookup(items, id, timestamp)};
-      const found = filterParkings(items, {keyword: name, district, limit: 50}, timestamp);
-      const exact = items.filter(p => normalize(p.name) === normalize(name) && (!district || p.district === district.trim()));
+      const query = detailName(name);
+      if (!query) throw new ParkingServiceError('INVALID_INPUT', '상세조회할 주차장 이름을 입력하세요.');
+      const found = filterParkings(items, {keyword: query, district, limit: 50}, timestamp);
+      const exact = items.filter(p => normalize(detailName(p.name)) === normalize(query) && (!district || p.district === district.trim()));
       const candidates = exact.length ? exact.map(p => summarize(p, timestamp)) : found.items;
       const matchedCount = exact.length || found.matchedCount;
       if (!matchedCount) throw new ParkingServiceError('NOT_FOUND', '주차장을 찾을 수 없습니다. 이름 또는 지역을 확인하세요.');

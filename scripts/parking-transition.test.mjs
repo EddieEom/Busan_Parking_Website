@@ -64,3 +64,12 @@ test('문서에서 확인한 화명역 별칭 연결, 중복 대상은 연결 �
  const collision=mergeParkingData([...list,{parkgcd:'A22',parknm:'화명'}],[],[basic]);
  assert.equal(collision.filter(p=>p.basicMatched).length,0);
 });
+
+test('V6.2 상세조회에서 주차장·공영주차장 접미사를 정규화', async () => {
+  const {createParkingService} = await import('../services/parkingService.js');
+  const service = createParkingService({fetchImpl:async()=>Response.json({items:[{name:'화명역',parkgcd:'1'}]})});
+  for (const name of ['화명역 주차장','화명역 공영주차장']) {
+    assert.equal((await service.getParkingDetail({name})).parking.name,'화명역');
+  }
+  await assert.rejects(service.getParkingDetail({name:'주차장'}), {code:'INVALID_INPUT'});
+});
