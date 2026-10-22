@@ -46,3 +46,34 @@ export async function interpretWithGemini(question, env, fetchImpl = globalThis.
     try {return validateIntent(JSON.parse(text));} catch {throw new Error('AI_INVALID_RESPONSE');}
   }
 }
+
+// 명확한 문형만 처리합니다. 지원하지 않는 조건을 임의로 버리지 않습니다.
+export function interpretLocally(question) {
+  const q=question.normalize('NFKC').trim();
+  if (/점심|저녁.*먹|날씨|농담|코딩|로또/.test(q)) return validateIntent({intent:'clarify',clarification:'부산의 지역이나 주차장 이름과 원하는 조건을 입력해 주세요.'});
+  if (/무료|저렴|싼|비교|근처|주변|가까|도보|24시간|야간|이하|미만|초과|말고|제외|아닌|또는|이거나/.test(q)) return null;
+  const min=q.match(/빈\s*자리\s*(\d+)\s*대?\s*이상/);
+  const limit=q.match(/(\d+)\s*(?:개|곳)(?:만)?/);
+  const detail=/요금|운영\s*시간|주소|관리기관|전화|상세/.test(q);
+  const available=/빈\s*자리|여유|주차\s*가능/.test(q);
+  const best=available && /제일|가장/.test(q);
+  const asked=/주차|찾아|알려|보여|검색|추천/.test(q)||detail||available;
+  let keyword=q.replace(/빈\s*자리\s*\d+\s*대?\s*이상(?:인)?/g,' ')
+    .replace(/\d+\s*(?:개|곳)(?:만)?/g,' ')
+    .replace(/공영\s*주차장(?:을|를|이|가|은|는)?|주차장(?:을|를|이|가|은|는)?/g,'')
+    .replace(/요금(?:과|와)?|운영\s*시간(?:과|와)?|주소|관리기관|전화(?:번호)?|상세(?:정보)?/g,' ')
+    .replace(/빈\s*자리(?:가)?|여유(?:가)?|주차\s*가능(?:한)?/g,' ')
+    .replace(/찾아(?:주세요|주라|줘|봐)?|알려(?:주세요|주라|줘)?|보여(?:주세요|줘)?|추천(?:해줘|해주세요)?|검색(?:해줘|해주세요)?/g,' ')
+    .replace(/많은\s*순(?:으로)?|많은|있는|제일|가장|지금|현재/g,' ')
+    .replace(/쪽에서|쪽에|에서|근방/g,' ').replace(/(?:인\s*)?곳(?:을|이|만)?/g,' ')
+    .replace(/[.!?,]/g,' ').trim().replace(/\s+/g,' ');
+  if (/^(?:부산|전체|모든)$/.test(keyword)) keyword='';
+  // 하나의 지역/이름만 남아야 합니다. 복합 문장은 AI가 구조화합니다.
+  if (keyword.includes(' ') || keyword.length>60 || /[\n"'{}:]/.test(keyword)) return null;
+  if (!asked && (!keyword || !/^[가-힣A-Za-z0-9()·-]{1,30}$/.test(keyword))) return null;
+  if (!keyword && detail) return validateIntent({intent:'clarify',clarification:'상세정보를 확인할 주차장 이름을 입력해 주세요.'});
+  if (!keyword && !available && !limit && !asked) return null;
+  return validateIntent({intent:detail?'get_parking_detail':available?'find_available_parking':'search_parking',
+    keyword,name:detail?keyword:'',minAvailable:min?Number(min[1]):0,
+    sort:available?'available_desc':'relevance',limit:best?1:limit?Number(limit[1]):5});
+}

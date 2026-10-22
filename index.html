@@ -22,13 +22,13 @@
     </div>
     <section class="chat-panel" aria-labelledby="chat-title">
       <h2 id="chat-title">AI에게 주차장 물어보기</h2>
-      <p class="subtitle">예: 북구에서 빈자리 있는 주차장 찾아줘 · 화명역 주차장 요금 비교해줘</p>
+      <p class="subtitle">예: 북구에서 빈자리 있는 주차장 찾아줘 · 화명역 요금과 운영시간 알려줘</p>
       <p id="chat-config" role="status">AI 안내 연결을 확인하고 있습니다.</p>
       <form id="chat-form" hidden>
         <label for="chat-question">질문</label>
         <textarea id="chat-question" maxlength="1000" rows="3" required placeholder="찾고 싶은 주차장과 조건을 적어 주세요."></textarea>
         <div id="chat-verify"></div>
-        <button id="chat-send" type="submit" disabled>질문하기</button>
+        <button id="chat-send" type="submit" disabled>보내기</button>
         <p class="chat-help">질문마다 최신 정보를 새로 조회합니다. 이전 질문의 내용은 기억하지 않습니다.</p>
       </form>
       <p id="chat-status" role="status" aria-live="polite"></p>
