@@ -30,9 +30,9 @@
         <label for="chat-question">질문</label>
         <textarea id="chat-question" maxlength="1000" rows="3" required placeholder="찾고 싶은 주차장과 조건을 적어 주세요."></textarea>
         <div id="chat-verify"></div>
-        <div class="ai-actions"><button id="chat-send" type="submit" disabled>보내기</button><button id="voice-button" type="button" aria-label="말해서 주차장 찾기" aria-pressed="false" title="말해서 주차장 찾기">🎤</button></div>
+        <div class="ai-actions"><button id="chat-send" type="submit" disabled>보내기</button><button id="voice-button" type="button" aria-label="말해서 주차장 찾기" aria-pressed="false" title="말해서 주차장 찾기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button></div>
         <p class="voice-help">마이크를 누르고 말해 보세요. “내 주변에서 빈자리 많은 주차장 찾아줘”</p>
-        <p class="chat-help">질문마다 최신 정보를 새로 조회합니다. 이전 질문의 내용은 기억하지 않습니다.</p>
+        <p class="chat-help">Enter로 보내기 · Shift+Enter로 줄바꿈. 질문마다 최신 정보를 새로 조회합니다. 이전 질문의 내용은 기억하지 않습니다.</p>
       </form>
       <p id="chat-status" role="status" aria-live="polite"></p>
       <div id="chat-answer" class="chat-answer" tabindex="-1" hidden></div>
@@ -43,14 +43,17 @@
       </section>
     </section>
     <section class="filters" aria-label="검색 및 필터">
-      <div class="field search"><label for="search">이름·주소 검색</label><div class="search-actions"><input id="search" type="search" placeholder="예: 화명, 부산대역남측, 사하구" disabled><button id="search-button" type="button">검색</button><button id="gps-button" type="button" aria-label="현재 위치 주변 주차장 찾기" title="현재 위치 주변 주차장 찾기">📍</button></div></div>
+      <div class="field search"><label for="search">이름·주소 검색</label><div class="search-actions"><input id="search" type="search" placeholder="예: 화명, 부산대역남측, 사하구" disabled><button id="search-button" type="button">검색</button><button id="gps-button" type="button" aria-label="현재 위치 주변 주차장 찾기" title="현재 위치 주변 주차장 찾기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-8 8-14a8 8 0 0 0-16 0c0 6 8 14 8 14Z"/><circle cx="12" cy="8" r="3"/></svg></button></div></div>
       <div class="field"><label for="district">지역</label><select id="district" disabled><option value="">전체 지역</option></select></div>
       <div class="field"><label for="status">주차현황</label><select id="status" disabled><option value="">전체 현황</option><option value="available">주차 가능한 곳</option><option value="full">만차</option><option value="supported">실시간 제공 대상</option><option value="unknown">확인 필요 · 갱신 지연</option></select></div>
       <div class="field"><label for="sort">정렬</label><select id="sort" disabled><option value="name">기본순 · GPS 검색 시 가까운 순</option><option value="available">주차가능 대수순</option><option value="fee">시간당 환산요금순</option></select></div>
       <button id="reset-button" type="button" class="secondary" disabled>필터 초기화</button>
     <p class="filter-help">검색은 공백·괄호 없이 입력해도 됩니다. 환산요금은 기본요금을 1시간 기준으로 비교한 값이며 실제 청구금액과 다를 수 있습니다.</p>
     </section>
+    <div class="sort-shortcuts" role="group" aria-label="빠른 정렬"><button id="sort-default-button" type="button" class="secondary" aria-pressed="true" disabled>기본순</button><button id="sort-available-button" type="button" class="secondary" aria-pressed="false" disabled>빈자리 많은 순</button></div>
+    <p id="data-status" class="filter-help" role="status"></p>
     <p id="location-status" role="status" aria-live="polite"></p>
+    <button id="location-retry" type="button" class="secondary" hidden>좌표 정보 다시 불러오기</button>
     <p id="warning" class="warning" role="status" hidden></p>
     <div class="summary"><p id="result" role="status" aria-live="polite">주차장 목록을 불러오는 중입니다.</p><p id="fetched-at"></p></div>
     <ul id="parking-list" aria-busy="true"></ul>

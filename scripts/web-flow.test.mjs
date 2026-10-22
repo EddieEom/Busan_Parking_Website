@@ -108,3 +108,34 @@ test('V7 GPS→가까운 5곳→빈자리순→새로고침 위치 유지→텍�
   assert.equal(cards()[0].parkingData.distanceKm,undefined);
  }finally{if(originalNavigator)Object.defineProperty(globalThis,'navigator',originalNavigator);else delete globalThis.navigator;dom.restore();}
 });
+
+test('기본정보 장애→GPS 자동 재조회→실패 안내·재시도 버튼→위치 재사용해 복구',async()=>{
+ const dom=installDom();let apiCalls=0,gpsCalls=0;
+ const originalNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+ try {
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{onLine:true,geolocation:{getCurrentPosition(success){gpsCalls++;success({coords:{latitude:35.2,longitude:129.1}});}}}});
+  globalThis.fetch=async()=>{
+   apiCalls++;const recovered=apiCalls>=3;
+   return Response.json({items:[{...parking(),...(recovered?{xCdnt:35.2,yCdnt:129.1}:{})}],fetchedAt:new Date().toISOString(),warnings:[],sources:{basic:{status:recovered?'available':'unavailable'}}});
+  };
+  const app=await import('../app.js?gps-recovery');await new Promise(resolve=>setImmediate(resolve));
+  const result=await app.requestNearby();assert.equal(result.success,false);assert.equal(apiCalls,2);assert.equal(dom.get('location-retry').hidden,false);
+  assert.match(dom.get('location-status').textContent,/기본정보 API/);
+  await dom.get('location-retry').handlers.click();assert.equal(apiCalls,3);assert.equal(gpsCalls,1);assert.equal(dom.get('location-retry').hidden,true);
+  assert.equal(dom.get('sort-default-button').textContent,'가까운 순');assert.match(dom.get('location-status').textContent,/가장 가까운 곳/);
+  dom.get('sort-available-button').handlers.click();assert.equal(dom.get('sort').value,'available');assert.equal(dom.get('sort-available-button')['aria-pressed'],'true');
+  dom.get('sort-default-button').handlers.click();assert.equal(dom.get('sort').value,'name');
+ }finally{if(originalNavigator)Object.defineProperty(globalThis,'navigator',originalNavigator);else delete globalThis.navigator;dom.restore();}
+});
+
+test('AI 입력 Enter 전송, Shift+Enter 줄바꿈과 한글 조합 중 Enter 보존',async()=>{
+ const dom=installDom();let submits=0,prevented=0;
+ try{
+  globalThis.fetch=async()=>Response.json({enabled:true});
+  dom.get('chat-form').requestSubmit=()=>submits++;
+  await import('../chat.js?keyboard');await new Promise(resolve=>setImmediate(resolve));
+  const press=event=>dom.get('chat-question').handlers.keydown({preventDefault(){prevented++;},...event});
+  press({key:'Enter',shiftKey:true});press({key:'Enter',isComposing:true});press({key:'x'});assert.equal(submits,0);
+  press({key:'Enter'});assert.equal(submits,1);assert.equal(prevented,1);
+ }finally{dom.restore();}
+});

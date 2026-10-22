@@ -28,6 +28,10 @@ export function makeCard(p, {showRaw = true, now = Date.now(), headingLevel = 'h
   const details = element('dl', null, 'details');
   const fee = p.baseFee != null && p.baseMinutes > 0 ? `${p.baseMinutes}분 ${number(p.baseFee)}원` : '정보 없음 · 운영기관 확인';
   details.append(row('주소(공공데이터 기준)', p.address),row('기본요금', fee),row('평일', p.weekdayHours),row('토요일', p.saturdayHours),row('공휴일', p.holidayHours),row('관리기관', p.agency),row('전화',p.phone),row('기준일',p.referenceDate));
+  if(p.additionalMinutes>0&&p.additionalFee!=null)details.append(row('추가요금',`${p.additionalMinutes}분 ${number(p.additionalFee)}원`));
+  if(p.dailyFee!=null)details.append(row('1일 요금(공공데이터)',`${number(p.dailyFee)}원`));
+  if(p.monthlyFee!=null)details.append(row('월 정기요금(공공데이터)',`${number(p.monthlyFee)}원`));
+  if(p.parkingType)details.append(row('주차장 형태',p.parkingType));
   card.append(details,element('p', p.realtimeSupported ? `현황 갱신: ${text(p.updatedAt)}` : '실시간 현황 미제공 · 기본정보만 제공', 'updated'));
   if (p.realtimeSupported && !p.basicMatched) card.append(element('p',p.matchMethod === 'ambiguous' ? '이름이 중복되어 기본정보 연결을 보류했습니다.' : '기본정보와 매칭되지 않아 주소·요금이 없습니다.','match-note'));
   const raw = element('details');

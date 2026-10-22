@@ -1,4 +1,4 @@
-const CACHE_NAME='busan-parking-v8-1';
+const CACHE_NAME='busan-parking-v8-3';
 const STATIC_FILES=['/','/index.html','/style.css','/v7.css','/v8.css','/voice.js','/geolocation.js','/app.js','/chat.js','/answer-renderer.js','/parking-card.js','/pwa.js','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(STATIC_FILES)).then(()=>self.skipWaiting()));

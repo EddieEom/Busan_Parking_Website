@@ -27,3 +27,8 @@ test('GPS 고정밀·12초·60초 설정 및 권한 오류·미지원',async()=>
   assert.ok(locationError({code}).length>10);
  }
 });
+
+test('참고 사이트의 평탄 좌표·lat/lng/lon과 원본 좌표를 모두 지원, 잘못된 앞 필드는 건너뜀',()=>{
+ for(const value of [{xCdnt:'35.2',yCdnt:'129.1'},{xcdnt:35.2,ycdnt:129.1},{lat:35.2,lng:129.1},{lat:35.2,lon:129.1},
+  {latitude:'-',longitude:'-',raw:{basic:{xCdnt:35.2,yCdnt:129.1}}}])assert.deepEqual(parkingCoordinates(value),{latitude:35.2,longitude:129.1});
+});

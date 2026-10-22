@@ -1,9 +1,10 @@
 import {makeCard} from './parking-card.js';
-import {getCurrentLocation, nearbyParkings, locationError} from './geolocation.js';
+import {getCurrentLocation, nearbyParkings, locationError, parkingCoordinates, formatDistance} from './geolocation.js';
 const $ = id => document.getElementById(id);
-const controls = ['search', 'district', 'status', 'sort', 'reset-button', 'search-button'];
+const controls = ['search', 'district', 'status', 'sort', 'reset-button', 'search-button', 'sort-default-button', 'sort-available-button'];
 const numberFormat = new Intl.NumberFormat('ko-KR');
 let parkings = [];
+let basicUnavailable=false;
 let loading = false;
 let loadTask=null, currentLocation=null, locationRequest=0, locating=false;
 // 공백·괄호·쉼표를 생략해도 같은 이름을 찾을 수 있습니다.
@@ -29,7 +30,7 @@ function searchRank(p, term) {
   if (name === term) return 0;
   if (name.startsWith(term)) return 1;
   if (name.includes(term)) return 2;
-  if ([p.address, p.parkgcd].some(value => normalize(value).includes(term))) return 3;
+  if ([p.address, p.roadAddress, p.lotAddress, p.agency, p.parkgcd].some(value => normalize(value).includes(term))) return 3;
   return Infinity;
 }
 // 페이지를 오래 열어두거나 새 조회가 실패해도 오래된 빈자리를 추천하지 않습니다.
@@ -61,6 +62,9 @@ function filterAndSort(items, filters, now = Date.now()) {
   return result;
 }
 function render() {
+  $('sort-default-button').textContent=currentLocation?'가까운 순':'기본순';
+  $('sort-default-button').setAttribute('aria-pressed',String($('sort').value==='name'));
+  $('sort-available-button').setAttribute('aria-pressed',String($('sort').value==='available'));
   const nearby=currentLocation?nearbyParkings(parkings,currentLocation):null;
   const results = filterAndSort(nearby||parkings, {search:$('search').value,district:$('district').value,status:$('status').value,sort:$('sort').value});
   const fragment = document.createDocumentFragment();
@@ -68,9 +72,10 @@ function render() {
   $('parking-list').replaceChildren(fragment);
   $('result').textContent = currentLocation?`현재 위치 주변 ${number(results.length)}곳 · 직선거리 기준`: `전체 ${number(parkings.length)}곳 중 ${number(results.length)}곳 표시`;
   if(currentLocation) {
-    $('location-status').textContent=!nearby.length?'위치 기반 검색에 사용할 주차장 좌표가 없습니다.':
-      (nearby[0].distanceKm>50?'현재 위치가 부산 데이터 범위와 멉니다. 가장 가까운 5곳을 표시합니다. ':'')+'직선거리이며 실제 이동거리·시간과 다릅니다. 카카오맵에서 위치를 확인하세요.';
+    $('location-status').textContent=!nearby.length?(basicUnavailable?'기본정보 API 연결이 원활하지 않아 좌표를 확인하지 못했습니다. 좌표 정보를 다시 불러와 주세요.':'위치 기반 검색에 사용할 주차장 좌표가 없습니다. 좌표 정보를 다시 불러와 주세요.'):
+      (nearby[0].distanceKm>50?'현재 위치가 부산 데이터 범위와 멉니다. 가장 가까운 5곳을 표시합니다. ':'')+`가장 가까운 곳 ${formatDistance(nearby[0].distanceKm)}. 직선거리이며 실제 이동거리·시간과 다릅니다. 카카오맵에서 위치를 확인하세요.`;
   }
+  $('location-retry').hidden=!(currentLocation&&!nearby.length);
   $('empty').hidden = results.length > 0;
 }
 function updateDistricts() {
@@ -101,11 +106,13 @@ async function load() {
     if (!response.ok) throw new Error(data.message || '주차정보 조회 실패');
     if (!Array.isArray(data.items)) throw new Error('통합 API의 items 응답 형식을 확인해 주세요.');
     parkings = data.items;
+    basicUnavailable=data.sources?.basic?.status==='unavailable';
     updateDistricts();
     const stats = data.stats;
     const summary = stats ? `목록 ${stats.listCount}건 · 현황 ${stats.realtimeCount}건 · 기본정보 ${stats.basicCount}건 · 연결 ${stats.matchedCount}건` : '';
     $('fetched-at').textContent = `조회 ${new Date(data.fetchedAt).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})}`;
     $('fetched-at').title = summary;
+    $('data-status').textContent=summary?`${summary} · GPS 좌표 ${parkings.filter(p=>parkingCoordinates(p)).length}곳`:'';
     $('warning').textContent = (data.warnings || []).join(' ');
     $('warning').hidden = !(data.warnings || []).length;
     render();
@@ -128,10 +135,14 @@ async function load() {
 }
 function refresh(){if(loading)return loadTask;loadTask=load();return loadTask;}
 $('load-button').addEventListener('click',refresh);
-function leaveNearby(){currentLocation=null;locationRequest++;$('location-status').textContent='';}
+function leaveNearby(){currentLocation=null;locationRequest++;$('location-status').textContent='';$('location-retry').hidden=true;}
 $('search').addEventListener('input',()=>{leaveNearby();render();});
 $('search-button').addEventListener('click',()=>{leaveNearby();render();});
 $('search').addEventListener('keydown',event=>{if(event.key==='Enter'){leaveNearby();render();}});
+for(const [button,sort] of [['sort-default-button','name'],['sort-available-button','available']]) {
+  $(button).addEventListener('click',()=>{$('sort').value=sort;render();});
+}
+$('location-retry').addEventListener('click',refresh);
 for (const id of ['district','status','sort']) $(id).addEventListener('change',render);
 $('reset-button').addEventListener('click',()=>{
   leaveNearby();$('search').value = ''; $('district').value = ''; $('status').value = ''; $('sort').value = 'name';render();
@@ -144,11 +155,16 @@ export async function requestNearby({sort='name'}={}) {
   try {
     const position=await getCurrentLocation();
     if(loading)await loadTask;else if(!parkings.length)await refresh();
-    if(request!==locationRequest)return;
+    if(!parkings.some(p=>parkingCoordinates(p))) {
+      $('location-status').textContent='주차장 좌표 정보를 다시 불러오고 있습니다...';
+      await refresh();
+    }
+    if(request!==locationRequest)return {success:false,cancelled:true};
     currentLocation=position;
     $('search').value='';$('district').value='';$('status').value='';$('sort').value=sort;
     render();
-  } catch(error) {if(request===locationRequest)$('location-status').textContent=locationError(error);}
+    return {success:nearbyParkings(parkings,currentLocation).length>0,message:$('location-status').textContent};
+  } catch(error) {if(request===locationRequest)$('location-status').textContent=locationError(error);return {success:false,message:locationError(error)};}
   finally{locating=false;$('gps-button').disabled=false;$('gps-button').setAttribute('aria-busy','false');}
 }
 $('gps-button').addEventListener('click',()=>requestNearby());

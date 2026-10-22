@@ -41,8 +41,8 @@ export function setupVoice({button,input,status,onSearch,onNearby,isBusy=()=>fal
         handled=true;listening=false;setListening(false);input.value=text;
         const route=voiceRoute(text);
         status.textContent=route.nearby?'현재 위치 주변 주차장을 찾고 있습니다...':'인식한 문장으로 검색하고 있습니다...';
-        Promise.resolve().then(()=>route.nearby?onNearby({sort:route.sort}):onSearch()).then(()=>{
-          if(route.nearby)status.textContent='주변 검색 안내와 결과를 아래 목록에서 확인해 주세요.';
+        Promise.resolve().then(()=>route.nearby?onNearby({sort:route.sort}):onSearch()).then(result=>{
+          if(route.nearby)status.textContent=result?.success===false?result.message||'아래 주변 검색 안내를 확인해 주세요.':'주변 검색 안내와 결과를 아래 목록에서 확인해 주세요.';
         }).catch(()=>{status.textContent='검색을 완료하지 못했습니다. 텍스트 또는 GPS 버튼으로 다시 검색해 주세요.';});
       };
       recognition.start();

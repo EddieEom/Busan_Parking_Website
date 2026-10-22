@@ -35,7 +35,7 @@ function rank(parking, term) {
   if (name === term) return 0;
   if (name.startsWith(term)) return 1;
   if (name.includes(term)) return 2;
-  if ([parking.address, parking.district, parking.parkgcd]
+  if ([parking.address, parking.roadAddress, parking.lotAddress, parking.agency, parking.district, parking.parkgcd]
       .some(value => normalize(value).includes(term))) return 3;
   return Infinity;
 }
@@ -58,6 +58,10 @@ function summarize(parking, now) {
   return {
     id: parkingId(parking), parkgcd: clean(parking.parkgcd), name: parking.name,
     district: clean(parking.district), address: clean(parking.address),
+    roadAddress:clean(parking.roadAddress),lotAddress:clean(parking.lotAddress),
+    latitude:parking.latitude??null,longitude:parking.longitude??null,
+    parkingType:clean(parking.parkingType),additionalMinutes:count(parking.additionalMinutes),additionalFee:count(parking.additionalFee),
+    dailyFee:count(parking.dailyFee),monthlyFee:count(parking.monthlyFee),
     totalSpaces, occupiedSpaces: count(parking.occupiedSpaces),
     availableSpaces: ['available', 'full'].includes(status) ? available : null,
     status, realtimeSupported: parking.realtimeSupported === true, updatedAt,

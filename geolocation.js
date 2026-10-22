@@ -2,11 +2,17 @@
 const numeric=value=>value!==null && value!==undefined && typeof value!=='boolean' && String(value).trim()!=='' && Number.isFinite(Number(value))?Number(value):null;
 export function parkingCoordinates(parking) {
   const basic=parking.raw?.basic;
-  let lat=numeric(parking.latitude ?? basic?.xCdnt),lon=numeric(parking.longitude ?? basic?.yCdnt);
-  if(lat===null||lon===null)return null;
-  if(Math.abs(lat)>90 && Math.abs(lat)<=180 && Math.abs(lon)<=90)[lat,lon]=[lon,lat];
-  if(Math.abs(lat)>90||Math.abs(lon)>180||(lat===0&&lon===0))return null;
-  return {latitude:lat,longitude:lon};
+  const pairs=[[parking.latitude,parking.longitude],[parking.xCdnt,parking.yCdnt],
+    [parking.xcdnt,parking.ycdnt],[parking.lat,parking.lng],[parking.lat,parking.lon],
+    [basic?.xCdnt,basic?.yCdnt]];
+  for(const pair of pairs) {
+    let [lat,lon]=pair.map(numeric);
+    if(lat===null||lon===null)continue;
+    if(Math.abs(lat)>90 && Math.abs(lat)<=180 && Math.abs(lon)<=90)[lat,lon]=[lon,lat];
+    if(Math.abs(lat)>90||Math.abs(lon)>180||(lat===0&&lon===0))continue;
+    return {latitude:lat,longitude:lon};
+  }
+  return null;
 }
 export function distanceKm(a,b) {
   const rad=x=>x*Math.PI/180;

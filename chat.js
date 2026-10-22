@@ -1,4 +1,4 @@
-import {setupVoice} from './voice.js';
+import {setupVoice,voiceRoute} from './voice.js';
 import {renderAnswerHtml} from './answer-renderer.js';
 import {makeCard} from './parking-card.js';
 (() => {
@@ -26,9 +26,25 @@ import {makeCard} from './parking-card.js';
       document.head.append(script);
     }catch{get('chat-form').hidden=false;update();get('chat-config').textContent='연결을 확인하지 못했습니다. 이름·빈자리 조건으로 다시 검색해 주세요.';}
   }
+  async function showNearby(options) {
+    if(busy)return;
+    busy=true;update();get('chat-question').disabled=true;
+    get('chat-results').hidden=true;get('chat-answer').hidden=true;get('chat-parking-list').replaceChildren();
+    get('chat-status').textContent='현재 위치 주변 주차장을 확인하고 있습니다...';
+    try {
+      const {requestNearby}=await import('./app.js');
+      const result=await requestNearby(options);
+      get('chat-status').textContent=result?.success===false?result.message||'아래 주변 검색 안내를 확인해 주세요.':'주변 검색 결과를 아래 목록에서 확인해 주세요.';
+      return result;
+    } finally {busy=false;get('chat-question').disabled=false;update();}
+  }
+  get('chat-question').addEventListener('keydown',event=>{
+    if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();get('chat-form').requestSubmit();}
+  });
   get('chat-form').addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;
     const question=get('chat-question').value.trim();if(!question)return;
+    const route=voiceRoute(question);if(route.nearby){await showNearby({sort:route.sort});return;}
     busy=true;update();get('chat-question').disabled=true;
     get('chat-results').hidden=true;get('chat-parking-list').replaceChildren();
     get('chat-status').textContent='최신 주차정보를 확인하고 있습니다…';get('chat-answer').hidden=true;
@@ -51,7 +67,7 @@ import {makeCard} from './parking-card.js';
   setupVoice({button:get('voice-button'),input:get('chat-question'),status:get('chat-status'),
     isBusy:()=>busy,
     onSearch:()=>get('chat-form').requestSubmit(),
-    onNearby:async options=>{const {requestNearby}=await import('./app.js');return requestNearby(options);}});
+    onNearby:showNearby});
   setup();
   // 답변을 오래 읽는 동안에도 과거 빈자리를 현재 가능 대수로 표시하지 않습니다.
   setInterval(()=>{

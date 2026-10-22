@@ -1,4 +1,5 @@
-> **V8.1 업데이트**: AI 없이 동작하는 기본 자연어 검색(V6.4.1), GPS 주변 5곳 검색(V7), 한국어 음성 입력과 GPS 연계(V8)를 추가했습니다. 기존 MCP·OpenRouter 연동도 유지합니다.
+> **V8.3 업데이트**: AI 없이 동작하는 기본 자연어 검색(V6.4.1), GPS 주변 5곳 검색(V7), 한국어 음성 입력과 GPS 연계(V8)를 추가했습니다. 기존 MCP·OpenRouter 연동도 유지합니다.
+> 참고 사이트의 빠른 정렬·AI Enter·좌표 호환·별칭 매칭도 통합하고, 기본정보 API 장애 시 좌표 복구를 보완했습니다. [참고 사이트 기능 대조](docs/REFERENCE_FEATURES.md).
 > 문서 대조 결과, 서버 설정, 버전별 구현 및 배포 후 확인 방법: [버전별 구현 기록](docs/VERSION_IMPLEMENTATION.md).
 
 <div align="center">

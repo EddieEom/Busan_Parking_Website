@@ -26,7 +26,9 @@ export async function handleAiParking(context,{fetchImpl=globalThis.fetch,loadPa
     const response=await loadParking(context);
     const data=await response.json();
     if(!response.ok||!Array.isArray(data.items))return json({version,message:'최신 주차정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'},502);
-    return json({version,source,...searchByIntent(data.items,plan),fetchedAt:data.fetchedAt,
+    const result=searchByIntent(data.items,plan);
+    if(/근처|주변/.test(body.question)&&source==='local')result.answer+=' 입력한 이름·주소 기준 검색입니다. 현재 위치와의 거리는 GPS 버튼으로 확인해 주세요.';
+    return json({version,source,...result,fetchedAt:data.fetchedAt,
       warnings:Array.isArray(data.warnings)?data.warnings:[]});
   } catch(error) {
     return json({version,message:error.message==='AI_BUSY'?'현재 AI 요청이 몰려 잠시 처리하지 못했습니다. 잠시 후 다시 보내주세요.':

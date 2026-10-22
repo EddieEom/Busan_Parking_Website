@@ -7,3 +7,8 @@
 @media(max-width:600px){.field.search {grid-column:1/-1}.search-actions input {width:0}}
 #search-button {min-width:64px;min-height:48px;padding:8px 12px}
 @media(max-width:600px){.search-actions{display:grid;grid-template-columns:minmax(0,1fr) 58px}.search-actions input{grid-column:1/-1;width:100%}}
+.sort-shortcuts {display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 8px}
+.sort-shortcuts button[aria-pressed="true"] {background:var(--blue,#1260cf);color:white}
+#gps-button svg,#voice-button svg {width:24px;height:24px;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#location-retry {margin-bottom:12px}
+#gps-button[aria-busy="true"] {opacity:.6}

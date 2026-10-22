@@ -10,7 +10,7 @@ export function searchByIntent(items, value, now=Date.now()) {
   let matches=items.flatMap(item=>filterParkings([item],{limit:1},now).items);
   const term=normalize(keyword);
   const rank=p=>!term?0:normalize(p.name)===term?0:normalize(p.name).startsWith(term)?1:
-    normalize(p.name).includes(term)?2:[p.address,p.district].some(x=>normalize(x||'').includes(term))?3:Infinity;
+    normalize(p.name).includes(term)?2:[p.address,p.roadAddress,p.lotAddress,p.agency,p.district].some(x=>normalize(x||'').includes(term))?3:Infinity;
   matches=matches.filter(p=>Number.isFinite(rank(p)));
   if(plan.intent==='get_parking_detail') {
     const exact=matches.filter(p=>normalize(p.name)===term);

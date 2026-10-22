@@ -41,3 +41,9 @@ test('통합 API는 기본정보 장애에도 실시간 유지하고 좌표 복�
  const failed=await (await onRequestGet(context,deps)).json();assert.equal(failed.sources.basic.status,'unavailable');assert.equal(failed.stats.coordinateCount,0);assert.equal(failed.items.length,1);assert.ok(!JSON.stringify(failed).includes('private key'));
  basicsFail=false;const recovered=await (await onRequestGet(context,deps)).json();assert.equal(recovered.sources.basic.stale,true);assert.equal(recovered.stats.coordinateCount,1);assert.ok(recovered.warnings.some(w=>w.includes('저장본')));
 });
+
+test('캐시 저장소 자체가 실패해도 정상 원본 기본정보를 반환',async()=>{
+ const cache={match(){throw Error('cache read');},put(){throw Error('cache write');}};
+ const data=await loadBasicInfo(context,'secret',{cache,fetchBasic:async()=>[{pkNam:'정상 원본'}]});
+ assert.equal(data.source,'live');assert.equal(data.items[0].pkNam,'정상 원본');
+});

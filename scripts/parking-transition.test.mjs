@@ -73,3 +73,22 @@ test('V6.2 상세조회에서 주차장·공영주차장 접미사를 정규화'
   }
   await assert.rejects(service.getParkingDetail({name:'주차장'}), {code:'INVALID_INPUT'});
 });
+
+test('참고 구현의 코드별 별칭을 연결하고 중복 기본정보·실시간 대상 충돌은 보류',()=>{
+ const examples=[['A11','부산기계공고 후문','부산기계공고 공영주차장'],['A37','롯데 광복점 뒤(2)','롯데광복점 뒤 2번'],
+  ['A48','대연고가밑','대연고가도로 밑'],['A434','만덕2동사앞복개','만덕2동사 앞']];
+ for(const [code,name,alias] of examples){
+  const list=[{parkgcd:code,parknm:name}],basic={pkNam:alias,xCdnt:'35.2',yCdnt:'129.1'};
+  const result=mergeParkingData(list,[],[basic]);assert.equal(result[0].basicMatched,true,name);assert.equal(result[0].matchMethod,'alias');assert.equal(result[0].latitude,35.2);
+  assert.equal(mergeParkingData(list,[],[basic,basic])[0].matchMethod,'ambiguous');
+  const conflict=mergeParkingData([...list,{parkgcd:'other',parknm:alias}],[],[basic]);assert.equal(conflict.filter(p=>p.basicMatched).length,0);
+ }
+});
+test('정확한 이름은 별칭보다 우선하며 도로명·지번·추가요금·무료 0원을 보존',()=>{
+ const result=mergeParkingData([{parkgcd:'A48',parknm:'대연고가밑'}],[],[
+  {pkNam:'대연고가밑',doroAddr:'부산 남구 도로 1',jibunAddr:'부산 남구 지번 2',pkAddTime:'10',feeAdd:'0',ftDay:'0',ftMon:'30000',pkFm:'노외',xCdnt:'129.1',yCdnt:'35.2'},
+  {pkNam:'대연고가도로 밑',xCdnt:'35.3',yCdnt:'129.2'}
+ ])[0];
+ assert.equal(result.matchMethod,'exact');assert.equal(result.longitude,129.1);assert.equal(result.latitude,35.2);
+ assert.equal(result.lotAddress,'부산 남구 지번 2');assert.equal(result.additionalFee,0);assert.equal(result.dailyFee,0);assert.equal(result.monthlyFee,30000);
+});

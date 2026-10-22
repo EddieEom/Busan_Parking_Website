@@ -61,3 +61,13 @@ test('기존 OpenRouter 비교는 Gemini 키가 함께 있어도 기존 보호 �
  },{turnstileToken:'token'}),{legacyChat:async c=>{calls++;const body=await c.request.json();assert.equal(body.turnstileToken,'token');return Response.json({answer:'기존 경로'});},interpret:()=>{throw Error('must not use Gemini for comparison');}});
  assert.equal((await response.json()).answer,'기존 경로');assert.equal(calls,1);
 });
+
+test('참고 사이트의 장소 근처·한 곳만·관리 기관 문형을 로컬 처리',()=>{
+ assert.equal(interpretLocally('화명역 근처 주차장 찾아줘').keyword,'화명역');
+ assert.equal(interpretLocally('부산대 주변에서 빈자리 많은 주차장 한 곳만 찾아줘').limit,1);
+ assert.equal(interpretLocally('화명역 관리 기관 알려줘').name,'화명역');
+});
+test('이름 외 도로명·지번·관리기관으로 실제 데이터를 검색',()=>{
+ const items=[{...parking('특정 주차장',2),roadAddress:'부산 북구 도로1',lotAddress:'부산 북구 지번2',agency:'북구청'}];
+ for(const keyword of ['도로1','지번2','북구청'])assert.equal(searchByIntent(items,{intent:'search_parking',keyword}).parkings.length,1);
+});
