@@ -15,7 +15,7 @@ export async function handleAiParking(context,{fetchImpl=globalThis.fetch,loadPa
     let plan=interpretLocally(body.question),source='local';
     if(!plan) {
       if(!remoteEnabled)return json({version,answer:'지역이나 주차장 이름, 빈자리 조건을 구체적으로 입력해 주세요. 예: 화명역 요금과 운영시간 알려줘',parkings:[],warnings:[],requiresSelection:false,matchedCount:0,source:'clarify'});
-      if(!env.GEMINI_API_KEY?.trim()) {
+      if(!env.GEMINI_API_KEY?.trim() || (/비교/.test(body.question) && env.OPENROUTER_API_KEY?.trim())) {
         // 기존 OpenRouter→MCP 비교 등 확장 기능 유지. 검증은 기존 처리기가 수행합니다.
         return legacyChat({...context,request:new Request(new URL('/api/chat',request.url),{method:'POST',headers:request.headers,body:JSON.stringify(body)})},fetchImpl);
       }

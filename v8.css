@@ -1,0 +1,8 @@
+.ai-actions {display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:8px;align-items:stretch;max-width:400px}
+.ai-actions button {min-height:48px;margin-top:0}
+#voice-button {width:58px;min-width:58px;padding:8px;font-size:23px}
+#voice-button.listening {background:#bd253b;border-color:#bd253b;animation:voice-pulse 1s ease-in-out infinite}
+.voice-help {font-size:13px;color:var(--muted);line-height:1.6}
+@keyframes voice-pulse {50%{box-shadow:0 0 0 6px rgba(189,37,59,.18)}}
+@media(prefers-reduced-motion:reduce){#voice-button.listening{animation:none}}
+@media(max-width:600px){.ai-actions{max-width:none;width:100%;grid-template-columns:minmax(0,1fr) 58px}.ai-actions button{width:100%}}

@@ -1,3 +1,4 @@
+import {setupVoice} from './voice.js';
 import {renderAnswerHtml} from './answer-renderer.js';
 import {makeCard} from './parking-card.js';
 (() => {
@@ -47,6 +48,10 @@ import {makeCard} from './parking-card.js';
     }catch(error){get('chat-status').textContent=error.name==='TimeoutError'?'답변이 지연되고 있습니다. 잠시 후 다시 질문해 주세요.':error.message;}
     finally{busy=false;token='';get('chat-question').disabled=false;if(widget!==null)window.turnstile.reset(widget);update();}
   });
+  setupVoice({button:get('voice-button'),input:get('chat-question'),status:get('chat-status'),
+    isBusy:()=>busy,
+    onSearch:()=>get('chat-form').requestSubmit(),
+    onNearby:async options=>{const {requestNearby}=await import('./app.js');return requestNearby(options);}});
   setup();
   // 답변을 오래 읽는 동안에도 과거 빈자리를 현재 가능 대수로 표시하지 않습니다.
   setInterval(()=>{

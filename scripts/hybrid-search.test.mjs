@@ -53,3 +53,11 @@ test('잘못된 Origin·본문 거절 및 공공 API 실패 시 성공 카드 �
  const response=await handleAiParking(context('화명 주차장'),{loadParking:async()=>Response.json({message:'secret failure'},{status:502})});
  assert.equal(response.status,502);assert.ok(!(await response.text()).includes('secret failure'));
 });
+
+test('기존 OpenRouter 비교는 Gemini 키가 함께 있어도 기존 보호 경로 유지',async()=>{
+ let calls=0;
+ const response=await handleAiParking(context('화명역 주차장 요금 비교해줘',{
+  GEMINI_API_KEY:'gemini',OPENROUTER_API_KEY:'openrouter',TURNSTILE_SITE_KEY:'public',TURNSTILE_SECRET_KEY:'verify'
+ },{turnstileToken:'token'}),{legacyChat:async c=>{calls++;const body=await c.request.json();assert.equal(body.turnstileToken,'token');return Response.json({answer:'기존 경로'});},interpret:()=>{throw Error('must not use Gemini for comparison');}});
+ assert.equal((await response.json()).answer,'기존 경로');assert.equal(calls,1);
+});

@@ -9,6 +9,7 @@
   <title>부산 공영주차장</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="v7.css">
+  <link rel="stylesheet" href="v8.css">
   <script src="app.js" type="module"></script>
   <script src="chat.js" type="module"></script>
   <script src="pwa.js" defer></script>
@@ -29,7 +30,8 @@
         <label for="chat-question">질문</label>
         <textarea id="chat-question" maxlength="1000" rows="3" required placeholder="찾고 싶은 주차장과 조건을 적어 주세요."></textarea>
         <div id="chat-verify"></div>
-        <button id="chat-send" type="submit" disabled>보내기</button>
+        <div class="ai-actions"><button id="chat-send" type="submit" disabled>보내기</button><button id="voice-button" type="button" aria-label="말해서 주차장 찾기" aria-pressed="false" title="말해서 주차장 찾기">🎤</button></div>
+        <p class="voice-help">마이크를 누르고 말해 보세요. “내 주변에서 빈자리 많은 주차장 찾아줘”</p>
         <p class="chat-help">질문마다 최신 정보를 새로 조회합니다. 이전 질문의 내용은 기억하지 않습니다.</p>
       </form>
       <p id="chat-status" role="status" aria-live="polite"></p>

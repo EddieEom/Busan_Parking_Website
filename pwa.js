@@ -17,7 +17,7 @@
     const refreshWhenIdle=()=>{
       const question=document.getElementById('chat-question'),answer=document.getElementById('chat-answer');
       // 작성 중인 질문·진행 중인 요청·읽고 있는 답변은 지우지 않습니다.
-      if(!pendingReload||reloading||document.visibilityState==='hidden'||question?.disabled||question?.value.trim()||answer&&!answer.hidden)return;
+      if(!pendingReload||reloading||document.visibilityState==='hidden'||question?.disabled||document.getElementById('voice-button')?.getAttribute('aria-pressed')==='true'||document.getElementById('gps-button')?.getAttribute('aria-busy')==='true'||question?.value.trim()||answer&&!answer.hidden)return;
       reloading=true;window.location.reload();
     };
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
