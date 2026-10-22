@@ -1,3 +1,4 @@
+import {mapSearch} from './map-link.js';
 import {formatDistance} from './geolocation.js';
 const numberFormat = new Intl.NumberFormat('ko-KR');
 const text = value => value == null ? '정보 없음' : String(value);
@@ -37,8 +38,9 @@ export function makeCard(p, {showRaw = true, now = Date.now(), headingLevel = 'h
   const raw = element('details');
   raw.append(element('summary','상세정보 · 원본 데이터'), element('pre',JSON.stringify(p.raw,null,2)));
   card.append(element('p','주소는 공공데이터 기준이며 실제 위치와 다를 수 있습니다. 지도에서 위치를 확인하세요.','address-note'));
-  const map=element('a','카카오맵에서 위치 확인','map-link');
-  map.href='https://map.kakao.com/link/search/'+encodeURIComponent(`부산 ${p.name}`);
+  const target=mapSearch(p);
+  const map=element('a',target.usesAddress?'카카오맵에서 위치 확인':'주소 없음 · 이름으로 위치 검색','map-link');
+  map.href=target.url;
   map.target='_blank';map.rel='noopener noreferrer';
   card.append(map);
   if (showRaw && p.raw) card.append(raw);

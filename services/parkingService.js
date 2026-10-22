@@ -1,3 +1,4 @@
+import {mapSearch} from '../map-link.js';
 // MCP에서 사용할 공통 검색 서비스. 인증키 없이 기존 /api/parking을 호출합니다.
 const normalize = value => String(value ?? '').normalize('NFKC')
   .replace(/[\s(),·（）\[\]]/g, '').toLowerCase();
@@ -70,7 +71,7 @@ function summarize(parking, now) {
     holidayHours: clean(parking.holidayHours), phone: clean(parking.phone),
     agency: clean(parking.agency), referenceDate: clean(parking.referenceDate),
     basicMatched: parking.basicMatched === true, matchMethod: clean(parking.matchMethod),
-    mapUrl: `https://map.kakao.com/link/search/${encodeURIComponent("부산 " + parking.name)}`
+    mapUrl: mapSearch(parking).url
   };
 }
 

@@ -37,7 +37,7 @@ test('공통 카드에서 안전한 텍스트·지도 검색어·원본 주소·
     const card=makeCard(p);
     assert.equal(elementsByTag(card,'img').length,0);
     assert.ok(card.textContent.includes(p.name));assert.ok(card.textContent.includes(p.address));
-    assert.equal(elementsByTag(card,'a')[0].href,'https://map.kakao.com/link/search/'+encodeURIComponent('부산 '+p.name));
+    assert.equal(elementsByTag(card,'a')[0].href,'https://map.kakao.com/link/search/'+encodeURIComponent('부산광역시 '+p.address));
     assert.ok(card.textContent.includes('원본 데이터'));assert.ok(card.textContent.includes('전체 37면 · 주차 중 32대'));
     const later=makeCard(p,{now:Date.now()+11*60000,showRaw:false});
     assert.ok(later.textContent.includes('갱신 지연'));assert.ok(!later.textContent.includes('5대 주차 가능'));
