@@ -71,3 +71,13 @@ npm test
 - 기존 요금 비교: OpenRouter가 구성되어 있으면 Gemini 키 유무와 관계없이 기존 사용자 확인→OpenRouter→MCP 비교 경로를 유지합니다.
 - 최종 자동 테스트 **105개 통과**. Cloudflare Wrangler Pages Functions 빌드도 성공했습니다.
 - 실제 Service Worker를 등록한 Chromium에서도 V8 캐시의 새 모듈(음성/GPS)을 확인했습니다. API가 캐시에 없고, 오프라인 재접속 시 앱 화면만 복원되며 과거 빈자리가 표시되지 않는 것을 확인했습니다.
+
+## V8.2 기본정보 API 복구 경로
+
+첨부 화면은 기본정보 API가 실패하여 GPS 좌표를 받지 못한 경우였습니다. 참고 사이트 `https://new-busan-parking.pages.dev`와 저장소 `appsunggon/new-busan-parking`의 `359665b7c812ac42ef5a28d43e0a0fea7437859f`를 비교했습니다.
+
+- 참고 구현처럼 기본정보는 1000건 단위로 수집해 순차 API 호출 횟수를 줄입니다. 1000건을 넘으면 다음 페이지도 수집합니다.
+- 연결 오류와 HTTP 408/429/5xx는 최대 두 번 재시도합니다. 인증 실패는 무작정 반복하지 않습니다.
+- Cloudflare Cache API에는 좌표·주소·요금 등의 기본정보만 저장합니다. 15분 내 저장본은 재사용하고, 이후 새 조회 실패 시 24시간 이내 저장본을 받은 시각과 함께 표시합니다. 실시간 빈자리 응답은 캐시하지 않습니다.
+- 정상 저장본이 없는 API 장애·인증/활용승인 문제는 숨기지 않고 재시도와 설정 확인 안내를 표시합니다.
+- API의 `sources.basic`은 기본정보 출처/조회 시각/저장본 여부를, `stats.coordinateCount`는 실제로 거리 계산이 가능한 좌표 수를 제공합니다.
