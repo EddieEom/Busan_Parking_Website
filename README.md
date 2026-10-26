@@ -12,11 +12,13 @@
 
 ## 실행 화면
 
-<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/main/assets/screenshots/parking-search.jpg" alt="부산 주차장 검색 및 AI 질문 화면" width="100%"/>
+[배포 사이트](https://busan-parking-website.pages.dev/)에서 2026-10-26에 캡처했습니다. 아래 결과 화면은 ‘화명’ 검색 결과이며, 주차 가능 대수는 조회 시점 기준입니다.
+
+<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/271fbdfe2c28c3205336f3840425d5ac98fdad94/assets/screenshots/parking-search.jpg" alt="부산 주차장 검색 및 AI 질문 화면" width="100%"/>
 
 **검색·AI 안내 화면**
 
-<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/main/assets/screenshots/parking-results.jpg" alt="주차장별 요금·운영시간·잔여 면수를 표시하는 조회 결과" width="100%"/>
+<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/271fbdfe2c28c3205336f3840425d5ac98fdad94/assets/screenshots/parking-results.jpg" alt="주차장별 요금·운영시간·잔여 면수를 표시하는 조회 결과" width="100%"/>
 
 **조회 결과** · 주차장별 요금, 운영시간과 잔여 면수를 카드로 표시합니다.
 
