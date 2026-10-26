@@ -44,7 +44,7 @@
 - `mcp-server/openrouterClient.js`: 네 도구 중 요청에 맞는 선택, 검증된 카드 결과·경고 전달, 후보 임의 확정 및 후속 조회 실패 처리.
 - `mcp-server/geminiClient.js`: 진단 CLI의 도구 허용 목록·검증도 네 도구와 이름 후보에 맞춤.
 - `functions/api/chat.js`: 기존 응답에 parkings·조회 시각·선택 필요 여부·일치 수 추가.
-- `parking-card.js`, `app.js`, `chat.js`, `index.html`, `style.css`: 기존 목록 카드를 공유하고 AI 결과에도 표시. 1분마다 지연 현황 재평가.
+- `parking-card.js`, `app.js`, `chat.js`, `index.html`, `assets/css/style.css`: 기존 목록 카드를 공유하고 AI 결과에도 표시. 1분마다 지연 현황 재평가.
 - `lib/normalizeName.js`, `lib/mergeParkingData.js`: 문서에 명시된 화명역 별칭 및 충돌 보류.
 - `service-worker.js`: 새 정적 모듈 캐시·버전 변경. `.dev.vars.example`: 같은 사이트 MCP를 기본으로 사용.
 - 테스트·README·MCP_README: 추가 계약과 실행 방법 반영.

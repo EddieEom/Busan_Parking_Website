@@ -1,5 +1,5 @@
-const CACHE_NAME='busan-parking-v9-0';
-const STATIC_FILES=['/','/index.html','/style.css','/neon.css','/ui-effects.js','/v7.css','/v8.css','/voice.js','/geolocation.js','/app.js','/chat.js','/answer-renderer.js','/parking-card.js','/map-link.js','/pwa.js','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
+const CACHE_NAME='busan-parking-v9-0-assets';
+const STATIC_FILES=['/','/index.html','/assets/css/style.css','/assets/css/neon.css','/ui-effects.js','/assets/css/v7.css','/assets/css/v8.css','/voice.js','/geolocation.js','/app.js','/chat.js','/answer-renderer.js','/parking-card.js','/map-link.js','/pwa.js','/manifest.webmanifest','/assets/images/icon-192.png','/assets/images/icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(STATIC_FILES)).then(()=>self.skipWaiting()));
 });

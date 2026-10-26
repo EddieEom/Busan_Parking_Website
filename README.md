@@ -1,22 +1,14 @@
-> **Night Signal UI**: 어두운 네이비와 민트·보라 네온, 동적 조회 요약, 카드·버튼·로딩 효과, 빠른 요청을 적용했습니다. 모션 감소 설정을 지원합니다.
-> **V9.0 업데이트**: AI 없이 동작하는 기본 자연어 검색(V6.4.1), GPS 주변 5곳 검색(V7), 한국어 음성 입력과 GPS 연계(V8)를 추가했습니다. 기존 MCP·OpenRouter 연동도 유지합니다.
-> 참고 사이트의 빠른 정렬·AI Enter·좌표 호환·별칭 매칭도 통합하고, 기본정보 API 장애 시 좌표 복구를 보완했습니다. [참고 사이트 기능 대조](docs/REFERENCE_FEATURES.md).
-> 문서 대조 결과, 서버 설정, 버전별 구현 및 배포 후 확인 방법: [버전별 구현 기록](docs/VERSION_IMPLEMENTATION.md).
-
-<div align="center">
-
 # 부산 공영주차장
 
-**공공데이터로 조회하는 주차장 정보와 실시간 현황**
+생성형 AI를 활용해 웹사이트를 만들고 배포하는 수업 프로젝트입니다. **AI 코드 생성을 적극 활용해 공공데이터 API, MCP 서버 연결, Cloudflare 배포를 경험했습니다.**
 
-</div>
+## 이 프로젝트에서 해본 것
 
-<p align="center"><img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-E9C46A?style=flat-square"/> <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare%20Pages-F38020?style=flat-square"/> <img alt="OpenRouter" src="https://img.shields.io/badge/OpenRouter-222222?style=flat-square"/> <img alt="MCP" src="https://img.shields.io/badge/MCP-4668A8?style=flat-square"/> <img alt="PWA" src="https://img.shields.io/badge/PWA-5A0FC8?style=flat-square"/></p>
+공공데이터 API로 주차장 정보를 가져와 검색 화면에 표시하고, MCP 도구를 통해 AI가 주차장을 조회·비교하도록 연결했습니다. Cloudflare Pages와 Functions에 배포하면서 인증키와 서버 주소 등 환경 설정도 다뤘습니다.
 
+요구사항을 AI에 전달해 코드를 생성하고 실행 결과를 보며 수정하는 방식으로 진행했습니다. 모든 코드를 독립적으로 작성한 경험보다는, AI의 도움으로 외부 데이터·도구·배포를 연결해 본 경험을 보여주는 프로젝트입니다.
 
-| 프로젝트 | 수행 범위 | 배포 |
-| :--- | :--- | :--- |
-| **생성형 AI 활용 수업** | 요구사항 기반 AI 코드 생성 · 기능 확인 | Cloudflare Pages |
+화면 스타일과 아이콘은 `assets/`, MCP 연결 안내는 `docs/MCP_README.md`에 모았습니다. 배포 진입점인 `index.html`, `functions/`, 서비스 워커는 기존 위치를 유지했습니다.
 
 ## 실행 화면
 
@@ -68,12 +60,12 @@
 ## 프로젝트 구조
 
 ```text
-├─ index.html / style.css       # 화면과 스타일
+├─ index.html / assets/css/style.css       # 화면과 스타일
 ├─ app.js                       # 목록 조회·필터·정렬·카드 표시
 ├─ parking-card.js              # 일반 목록과 AI 결과가 공유하는 카드
 ├─ chat.js / answer-renderer.js  # AI 질문과 답변 표시
 ├─ pwa.js / service-worker.js    # 설치 및 정적 파일 캐시
-├─ manifest.webmanifest         # PWA 정보 (icon-192.png, icon-512.png)
+├─ manifest.webmanifest         # PWA 정보 (assets/images/icon-192.png, assets/images/icon-512.png)
 ├─ functions/api/
 │  ├─ parking.js                # 공공데이터 3종 통합 API
 │  ├─ mcp.js                    # Streamable HTTP MCP
@@ -161,7 +153,7 @@ npm --prefix mcp-server run check -- 화명
 npm --prefix mcp-server run check:http -- http://localhost:8788/api/mcp
 ```
 
-자동 테스트와 실제 외부 API·AI 호출은 구분해야 합니다. 실제 Turnstile, OpenRouter, 배포 연결은 각 환경의 키를 설정한 뒤 별도 확인합니다. MCP 도구·CLI·오류 진단은 [MCP_README.md](MCP_README.md)를 참고하세요.
+자동 테스트와 실제 외부 API·AI 호출은 구분해야 합니다. 실제 Turnstile, OpenRouter, 배포 연결은 각 환경의 키를 설정한 뒤 별도 확인합니다. MCP 도구·CLI·오류 진단은 [MCP 연결 안내](docs/MCP_README.md)를 참고하세요.
 
 PWA는 HTTPS 배포에서 설치를 확인합니다. 정적 파일을 변경하면 `service-worker.js`의 `CACHE_NAME`을 갱신하세요. 오프라인에서는 캐시된 화면만 열 수 있으며, 최신 주차정보와 AI 안내에는 인터넷 연결이 필요합니다.
 

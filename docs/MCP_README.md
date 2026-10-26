@@ -1,6 +1,6 @@
 ﻿# 부산 공영주차장 MCP 및 AI 설정
 
-현재 구현은 읽기 전용 MCP 도구 4종, 로컬 stdio 서버, Cloudflare Pages의 Streamable HTTP 서버, OpenRouter 기반 웹 AI·CLI로 구성됩니다. V6.2 문서의 검색·빈자리순·상세 3종에 기존 비교 도구를 함께 제공합니다. 웹 실행·배포의 기본 안내는 [README.md](README.md)를 참고하세요.
+현재 구현은 읽기 전용 MCP 도구 4종, 로컬 stdio 서버, Cloudflare Pages의 Streamable HTTP 서버, OpenRouter 기반 웹 AI·CLI로 구성됩니다. V6.2 문서의 검색·빈자리순·상세 3종에 기존 비교 도구를 함께 제공합니다. 웹 실행·배포의 기본 안내는 [README.md](../README.md)를 참고하세요.
 
 ## 구성과 호출 흐름
 
