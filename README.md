@@ -1,56 +1,51 @@
-# 부산 공영주차장
+# 부산 공영주차장 · AI 코드 생성과 MCP 연결 실습
 
-**AI 코드 생성을 활용해 공공데이터 API·MCP 서버를 연결하고 Cloudflare에 배포한 수업 프로젝트입니다.**
+**AI를 활용해 코드를 생성·수정하고, 공공데이터 API와 MCP 서버를 연결해 Cloudflare에 배포했습니다.**
 
-[배포 사이트](https://busan-parking-website.pages.dev/) · [MCP 연결 안내](docs/MCP_README.md) · [실행 방법](#실행-방법)
+JavaScript · 공공데이터 API · MCP · OpenRouter · Cloudflare Pages / Functions
 
-<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/271fbdfe2c28c3205336f3840425d5ac98fdad94/assets/screenshots/parking-search.jpg" alt="부산 주차장 검색 및 AI 질문 화면" width="100%"/>
+[배포 사이트](https://busan-parking-website.pages.dev/) · [MCP 연결 안내](docs/MCP_README.md)
 
-<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/271fbdfe2c28c3205336f3840425d5ac98fdad94/assets/screenshots/parking-results.jpg" alt="주차장별 요금·운영시간·잔여 면수를 표시하는 조회 결과" width="100%"/>
+<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/main/assets/screenshots/parking-search.jpg" alt="배포된 주차장 웹의 검색·AI 안내 화면" width="100%"/>
 
-2026-10-26 배포 사이트에서 직접 캡처한 첫 화면과 ‘화명’ 검색 결과입니다. 잔여 면수는 당시 조회 시점 기준입니다.
 
-## 담당 범위
+## 이 프로젝트에서 시도한 것
 
-| 구분 | 범위 |
+| 작업 | 진행 내용 |
 | --- | --- |
-| 제공받은 부분 | 수업 기능 요구사항, 공공데이터 API의 원천 정보 |
-| 내가 맡은 일 | 요구사항 전달·수정 요청, 화면과 조회 결과 확인, 외부 서비스 연결·배포 설정 |
-| AI 역할 | 코드 생성과 수정 지원. 모든 구현을 독립적으로 작성한 작업과 구분 |
-| 결과물 | 주차장 검색, 실시간 현황, 지도 검색 연결, MCP 기반 AI 조회, PWA |
+| AI 활용 | 요구사항 전달 → 코드 생성 → 실행 결과 확인 → 수정 요청 |
+| MCP 연결 | 주차장 검색·빈자리순·상세·비교 도구 구성 |
+| 외부 데이터 | 공공데이터 목록·현황·기본정보 수집과 병합 |
+| 배포 | Cloudflare Pages와 Functions, 환경변수 설정 |
 
-## 개발 과정
+수업 요구사항을 바탕으로 AI 코드 생성을 적극 활용했습니다. 생성된 결과를 그대로 두기보다, 조회값과 실제 사용 흐름을 확인하고 필요한 수정사항을 구체적으로 전달하는 방식으로 진행했습니다.
 
-### 1. 화면에 목록을 띄우는 것부터 시작
+## 개발 중 수정한 사례
 
-목록과 실시간 현황을 가져온 다음, 필터·정렬·기본정보 표시로 확장했습니다. 데이터 출처마다 공통 식별자가 없어 모두 같은 방식으로 합칠 수는 없었습니다. 코드 기반 연결과 이름 정규화·매칭을 구분하고, 정보가 없을 때는 0으로 단정하지 않도록 구성했습니다.
+### MCP가 연결되지 않을 때
 
-### 2. MCP 연결 오류와 외부 모델 변경
+MCP 서버 연결 오류와 Gemini의 429·503 응답을 경험했습니다. 현재 웹은 OpenRouter와 MCP 도구를 연결합니다. 서버 주소·인증 설정·모델 응답을 나눠 확인하면서, 화면에서 발생한 오류가 어느 연결 구간의 문제인지 살펴봤습니다.
 
-개발 중 MCP 서버 연결 오류가 발생했고 Gemini 호출에서도 429·503 응답을 경험했습니다. 현재 웹은 OpenRouter와 MCP 도구를 연결하는 방식으로 구성했습니다. 서버 주소·인증 토큰·모델 응답을 따로 확인해야 했던 부분입니다.
+### 지도에서 다른 위치가 검색될 때
 
-### 3. 지도 링크는 이름보다 주소가 필요했다
+주차장 이름만으로 지도를 검색하면 원하는 위치를 찾기 어려운 사례가 있었습니다. 공공데이터의 주소를 우선 사용하고, 주소가 없을 때 이름 검색을 안내하도록 바꿨습니다. 일반 검색과 AI 결과가 같은 카드 모듈을 쓰도록 구성했습니다.
 
-주차장 이름으로 지도 검색을 연결했을 때 원하는 위치를 찾기 어려운 사례가 있었습니다. 공공데이터의 주소를 우선 사용하고 주소가 없을 때 이름 검색을 안내하도록 바꿨습니다. 일반 검색과 AI 결과는 같은 카드 모듈을 사용합니다.
+### 사용자가 업데이트 버튼을 찾아야 할 때
 
-### 4. 배포 이후의 사용 흐름도 수정
+PWA의 새 버전 반영을 사용자에게 맡기는 흐름을 줄이도록 수정했습니다. 정적 화면만 캐시하고, 실시간 주차정보와 AI 응답은 네트워크에서 가져오도록 구분했습니다.
 
-화면을 새 네온 디자인으로 바꾸고, 글자와 조회 요약·검색 버튼을 조정했습니다. PWA 업데이트도 사용자가 별도 버튼을 찾아야 하는 흐름을 줄이는 방향으로 수정했습니다. API·AI 응답은 오프라인 캐시 대상에서 제외했습니다.
+이 과정에서 요구사항을 명확히 전달하는 것과 AI가 만든 결과를 확인하는 일이 함께 필요하다는 점을 배웠습니다.
 
-이 과정의 코드는 AI 도움을 받아 생성·수정했습니다. 오류를 발견하고 요구사항을 구체화하며 결과를 확인한 작업을 제 수행 범위로 설명합니다.
+## 코드와 결과
 
-## 코드와 확인 범위
+[공공데이터 처리](lib) · [MCP 도구](mcp-server/createServer.js) · [지도 링크](map-link.js) · [공통 카드](parking-card.js)
 
-| 내용 | 근거 |
-| --- | --- |
-| 원천 데이터 수집·병합 | [lib](lib) |
-| MCP 도구 등록 | [createServer.js](mcp-server/createServer.js) |
-| 지도 링크 생성 | [map-link.js](map-link.js) |
-| 일반·AI 공통 카드 | [parking-card.js](parking-card.js) |
-| 개발 단계별 기록 | [버전 기록](docs/VERSION_IMPLEMENTATION.md) |
-| 요구사항과 구현 대조 | [구현 대조표](docs/IMPLEMENTATION_REVIEW.md) |
+<img src="https://raw.githubusercontent.com/EddieEom/EddieEom/main/assets/screenshots/parking-results.jpg" alt="화명 검색 결과와 주차장별 정보" width="100%"/>
 
-2026-10-26 파일 정리 후 자동 테스트 121개 통과를 확인했습니다. 이는 당시 코드의 테스트 결과이며 실제 AI 서비스·인증·모바일 설치의 상시 정상 동작을 뜻하지 않습니다.
+
+위 캡처는 2026-10-26 배포 화면입니다. 당시 파일 정리 후 자동 테스트 121개 통과를 확인했습니다. 실제 외부 서비스 연결은 환경변수와 API 상태에 따라 별도로 확인해야 합니다.
+
+[버전별 개발 기록](docs/VERSION_IMPLEMENTATION.md) · [요구사항과 구현 대조](docs/IMPLEMENTATION_REVIEW.md)
 
 ## 실행 방법
 
