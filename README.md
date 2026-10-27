@@ -1,86 +1,58 @@
 # 부산 공영주차장
 
-생성형 AI를 활용해 웹사이트를 만들고 배포하는 수업 프로젝트입니다. **AI 코드 생성을 적극 활용해 공공데이터 API, MCP 서버 연결, Cloudflare 배포를 경험했습니다.**
+**AI 코드 생성을 활용해 공공데이터 API·MCP 서버를 연결하고 Cloudflare에 배포한 수업 프로젝트입니다.**
 
-## 이 프로젝트에서 해본 것
-
-공공데이터 API로 주차장 정보를 가져와 검색 화면에 표시하고, MCP 도구를 통해 AI가 주차장을 조회·비교하도록 연결했습니다. Cloudflare Pages와 Functions에 배포하면서 인증키와 서버 주소 등 환경 설정도 다뤘습니다.
-
-요구사항을 AI에 전달해 코드를 생성하고 실행 결과를 보며 수정하는 방식으로 진행했습니다. 모든 코드를 독립적으로 작성한 경험보다는, AI의 도움으로 외부 데이터·도구·배포를 연결해 본 경험을 보여주는 프로젝트입니다.
-
-화면 스타일과 아이콘은 `assets/`, MCP 연결 안내는 `docs/MCP_README.md`에 모았습니다. 배포 진입점인 `index.html`, `functions/`, 서비스 워커는 기존 위치를 유지했습니다.
-
-## 실행 화면
-
-[배포 사이트](https://busan-parking-website.pages.dev/)에서 2026-10-26에 캡처했습니다. 아래 결과 화면은 ‘화명’ 검색 결과이며, 주차 가능 대수는 조회 시점 기준입니다.
+[배포 사이트](https://busan-parking-website.pages.dev/) · [MCP 연결 안내](docs/MCP_README.md) · [실행 방법](#실행-방법)
 
 <img src="https://raw.githubusercontent.com/EddieEom/EddieEom/271fbdfe2c28c3205336f3840425d5ac98fdad94/assets/screenshots/parking-search.jpg" alt="부산 주차장 검색 및 AI 질문 화면" width="100%"/>
 
-**검색·AI 안내 화면**
-
 <img src="https://raw.githubusercontent.com/EddieEom/EddieEom/271fbdfe2c28c3205336f3840425d5ac98fdad94/assets/screenshots/parking-results.jpg" alt="주차장별 요금·운영시간·잔여 면수를 표시하는 조회 결과" width="100%"/>
 
-**조회 결과** · 주차장별 요금, 운영시간과 잔여 면수를 카드로 표시합니다.
+2026-10-26 배포 사이트에서 직접 캡처한 첫 화면과 ‘화명’ 검색 결과입니다. 잔여 면수는 당시 조회 시점 기준입니다.
 
-## 🚘 결과물 한눈에 보기
+## 담당 범위
 
-<table><tr>
-<td width="33%" valign="top"><b>검색과 필터</b><br><br>이름 · 주소 · 구·군 검색<br>빈자리 · 요금 정렬</td>
-<td width="33%" valign="top"><b>실시간 정보</b><br><br>잔여 면수 · 갱신 시각<br>요금 · 운영시간 표시</td>
-<td width="33%" valign="top"><b>AI 안내</b><br><br>MCP 기반 조회·비교<br>질문에 맞는 주차장 카드</td>
-</tr></table>
+| 구분 | 범위 |
+| --- | --- |
+| 제공받은 부분 | 수업 기능 요구사항, 공공데이터 API의 원천 정보 |
+| 내가 맡은 일 | 요구사항 전달·수정 요청, 화면과 조회 결과 확인, 외부 서비스 연결·배포 설정 |
+| AI 역할 | 코드 생성과 수정 지원. 모든 구현을 독립적으로 작성한 작업과 구분 |
+| 결과물 | 주차장 검색, 실시간 현황, 지도 검색 연결, MCP 기반 AI 조회, PWA |
 
-## 프로젝트 배경과 수행 범위
+## 개발 과정
 
-생성형 AI를 활용해 웹 결과물을 제작하고 배포하는 수업 프로젝트입니다. 제공된 기능 요구사항을 바탕으로 AI 코드 생성을 진행하고, Cloudflare에 배포해 동작을 확인했습니다.
+### 1. 화면에 목록을 띄우는 것부터 시작
 
-- 제공된 요구사항을 AI에 전달해 코드 생성
-- Cloudflare 배포 환경에 결과물 적용
-- 배포된 웹사이트의 기능 동작 확인
+목록과 실시간 현황을 가져온 다음, 필터·정렬·기본정보 표시로 확장했습니다. 데이터 출처마다 공통 식별자가 없어 모두 같은 방식으로 합칠 수는 없었습니다. 코드 기반 연결과 이름 정규화·매칭을 구분하고, 정보가 없을 때는 0으로 단정하지 않도록 구성했습니다.
 
-아래에는 결과물의 주요 기능과 실행·배포 방법을 정리했습니다.
+### 2. MCP 연결 오류와 외부 모델 변경
 
+개발 중 MCP 서버 연결 오류가 발생했고 Gemini 호출에서도 429·503 응답을 경험했습니다. 현재 웹은 OpenRouter와 MCP 도구를 연결하는 방식으로 구성했습니다. 서버 주소·인증 토큰·모델 응답을 따로 확인해야 했던 부분입니다.
 
-<details>
-<summary><b>📋 주요 기능 · 데이터 안내</b></summary>
+### 3. 지도 링크는 이름보다 주소가 필요했다
 
-## 주요 기능
+주차장 이름으로 지도 검색을 연결했을 때 원하는 위치를 찾기 어려운 사례가 있었습니다. 공공데이터의 주소를 우선 사용하고 주소가 없을 때 이름 검색을 안내하도록 바꿨습니다. 일반 검색과 AI 결과는 같은 카드 모듈을 사용합니다.
 
-- 주차장 이름·주소·코드 검색, 구·군 및 주차 상태 필터, 빈자리·요금 정렬
-- 잔여 면수, 갱신 시각, 기본요금, 요일별 운영시간, 관리기관 및 원본 데이터 표시
-- 도로명주소 → 지번주소 순으로 카카오맵 검색 연결. 주소가 없는 경우에만 이름 검색을 안내합니다. Kakao SDK나 API 키는 사용하지 않습니다.
-- MCP 검색·빈자리순 추천·상세조회·비교 도구를 사용하는 단일 질문 방식의 AI 안내와 주차장 카드
-- 설치 가능한 PWA와 오프라인 정적 화면. API 응답과 AI 답변은 캐시하지 않습니다.
+### 4. 배포 이후의 사용 흐름도 수정
 
-실시간 정보가 10분을 초과했거나 갱신 시각을 확인할 수 없으면 주차 가능으로 판단하지 않습니다. 잔여 면수는 도착 시 주차를 보장하지 않으며, 주소·요금·운영시간은 제공기관 정보입니다.
+화면을 새 네온 디자인으로 바꾸고, 글자와 조회 요약·검색 버튼을 조정했습니다. PWA 업데이트도 사용자가 별도 버튼을 찾아야 하는 흐름을 줄이는 방향으로 수정했습니다. API·AI 응답은 오프라인 캐시 대상에서 제외했습니다.
 
-</details>
+이 과정의 코드는 AI 도움을 받아 생성·수정했습니다. 오류를 발견하고 요구사항을 구체화하며 결과를 확인한 작업을 제 수행 범위로 설명합니다.
 
-<details>
-<summary><b>🗂️ 프로젝트 구조</b></summary>
+## 코드와 확인 범위
 
-## 프로젝트 구조
+| 내용 | 근거 |
+| --- | --- |
+| 원천 데이터 수집·병합 | [lib](lib) |
+| MCP 도구 등록 | [createServer.js](mcp-server/createServer.js) |
+| 지도 링크 생성 | [map-link.js](map-link.js) |
+| 일반·AI 공통 카드 | [parking-card.js](parking-card.js) |
+| 개발 단계별 기록 | [버전 기록](docs/VERSION_IMPLEMENTATION.md) |
+| 요구사항과 구현 대조 | [구현 대조표](docs/IMPLEMENTATION_REVIEW.md) |
 
-```text
-├─ index.html / assets/css/style.css       # 화면과 스타일
-├─ app.js                       # 목록 조회·필터·정렬·카드 표시
-├─ parking-card.js              # 일반 목록과 AI 결과가 공유하는 카드
-├─ chat.js / answer-renderer.js  # AI 질문과 답변 표시
-├─ pwa.js / service-worker.js    # 설치 및 정적 파일 캐시
-├─ manifest.webmanifest         # PWA 정보 (assets/images/icon-192.png, assets/images/icon-512.png)
-├─ functions/api/
-│  ├─ parking.js                # 공공데이터 3종 통합 API
-│  ├─ mcp.js                    # Streamable HTTP MCP
-│  └─ chat.js                   # Turnstile 검증 및 OpenRouter 호출
-├─ lib/                         # 공공데이터 수집·정규화·병합
-├─ services/parkingService.js    # MCP 공통 검색·상세·비교 서비스
-├─ mcp-server/                  # MCP 서버·AI CLI·프로토콜 테스트
-├─ scripts/                     # API 확인 스크립트 및 테스트
-├─ .dev.vars.example            # 로컬 웹 환경변수 예제
-└─ MCP_README.md                # MCP/AI 연결 상세 안내
-```
+2026-10-26 파일 정리 후 자동 테스트 121개 통과를 확인했습니다. 이는 당시 코드의 테스트 결과이며 실제 AI 서비스·인증·모바일 설치의 상시 정상 동작을 뜻하지 않습니다.
 
-</details>
+## 실행 방법
 
 <details>
 <summary><b>⚙️ 로컬 실행 · API · 배포 · 검증</b></summary>
